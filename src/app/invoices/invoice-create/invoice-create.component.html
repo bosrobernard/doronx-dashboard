@@ -1,0 +1,162 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Create Invoice</h2>
+      <p class="page-sub">Generate a crypto payment link for your customer</p>
+    </div>
+    <a routerLink="/invoices" class="btn-ghost-sm">← Back</a>
+  </div>
+
+  <div class="create-layout">
+    <div class="create-form-card">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+        <div class="form-section">
+          <h4 class="form-section-title">Payer Details</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Payer name</label>
+              <input class="form-input" formControlName="payerName" placeholder="Kwame Mensah">
+              <div class="form-error" *ngIf="f('payerName').touched && f('payerName').errors?.['required']">Required</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone <span class="form-hint">(optional)</span></label>
+              <input class="form-input" formControlName="payerPhone" placeholder="0240000000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" formControlName="payerEmail" placeholder="kwame@example.com">
+            <div class="form-error" *ngIf="f('payerEmail').touched && f('payerEmail').errors?.['email']">Valid email required</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description <span class="form-hint">(optional)</span></label>
+            <input class="form-input" formControlName="description" placeholder="e.g. Restaurant payment – Table 12">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4 class="form-section-title">Invoice Amount</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount</label>
+              <input class="form-input" type="number" formControlName="amount" placeholder="1000" min="1">
+              <div class="form-error" *ngIf="f('amount').touched && f('amount').errors?.['required']">Required</div>
+              <div class="form-error" *ngIf="f('amount').touched && f('amount').errors?.['min']">Minimum 1</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Invoice currency</label>
+              <select class="form-input form-select" formControlName="currency">
+                <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4 class="form-section-title">Payment Settings</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Crypto asset</label>
+              <select class="form-input form-select" formControlName="asset">
+                <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Network</label>
+              <select class="form-input form-select" formControlName="network">
+                <option *ngFor="let n of availableNetworks" [value]="n">{{ n }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="wallet-notice" *ngIf="wallets.length > 0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            Receiving to: <code>{{ wallets[0].address }}</code>
+          </div>
+          <div class="wallet-notice warn" *ngIf="wallets.length === 0">
+            ⚠ No wallet profile. <a routerLink="/wallets">Add a wallet</a> before creating invoices.
+          </div>
+        </div>
+
+        <!-- Rate preview -->
+        <div class="rate-preview" *ngIf="!quoting && !quote">
+          <button type="button" class="btn-outline-sm" (click)="getQuote()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            </svg>
+            Preview rate &amp; crypto amount
+          </button>
+        </div>
+
+        <div class="quote-card" *ngIf="quote">
+          <div class="quote-row">
+            <span class="quote-lbl">Rate ({{ quote.paymentAsset }}/{{ quote.invoiceCurrency }})</span>
+            <span class="quote-val mono">{{ quote.rate | number:'1.4-4' }}</span>
+          </div>
+          <div class="quote-row">
+            <span class="quote-lbl">Invoice amount</span>
+            <span class="quote-val mono">{{ quote.invoiceCurrency }} {{ quote.amount | number:'1.2-2' }}</span>
+          </div>
+          <div class="quote-row highlight">
+            <span class="quote-lbl">Quoted crypto amount</span>
+            <span class="quote-val mono large" style="color:var(--orange)">
+              {{ quote.expectedCryptoAmount | number:'1.4-6' }} {{ quote.paymentAsset }}
+            </span>
+          </div>
+          <!-- Fingerprint notice -->
+          <div class="fingerprint-notice">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            A tiny decimal suffix will be added to uniquely identify this payment on the shared address.
+            Your customer will see the final exact amount on the payment page.
+          </div>
+          <div class="quote-source">Expires: {{ quote.expiresAt | date:'shortTime' }}</div>
+        </div>
+
+        <div class="spinner-row" *ngIf="quoting">
+          <div class="spinner-sm"></div> Fetching live rate from Kraken × Fixer...
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary full"
+            [class.loading]="loading" [disabled]="loading || wallets.length === 0">
+            <span *ngIf="!loading">Create Invoice &amp; Payment Link</span>
+            <span *ngIf="loading" class="spinner"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Info panel -->
+    <div class="create-info-panel">
+      <div class="info-card">
+        <h4 class="info-card-title">How it works</h4>
+        <div class="info-step"><div class="info-step-num">1</div><div>Fill payer details and invoice amount</div></div>
+        <div class="info-step"><div class="info-step-num">2</div><div>Kraken × Fixer quotes exact crypto amount + unique fingerprint</div></div>
+        <div class="info-step"><div class="info-step-num">3</div><div>Share the payment link — customer pays to your wallet</div></div>
+        <div class="info-step"><div class="info-step-num">4</div><div>On-chain detection fires — you receive a signed webhook</div></div>
+      </div>
+      <div class="info-card">
+        <h4 class="info-card-title">Amount fingerprinting</h4>
+        <p style="font-size:12px;color:var(--gray);line-height:1.6">
+          Because many merchants share one wallet address, each invoice gets a tiny unique decimal suffix (e.g. <code>65.123401</code> instead of <code>65.123</code>).
+          This lets DoronX match the deposit to exactly one invoice. Your customer <strong>must send the exact amount shown</strong>.
+        </p>
+      </div>
+      <div class="info-card">
+        <h4 class="info-card-title">Supported networks</h4>
+        <div class="network-chips">
+          <span class="network-chip">TRC20</span>
+          <span class="network-chip">BEP20</span>
+          <span class="network-chip">Solana</span>
+          <span class="network-chip">BTC</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

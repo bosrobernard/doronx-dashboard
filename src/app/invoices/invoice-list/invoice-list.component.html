@@ -1,0 +1,92 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Invoices</h2>
+      <p class="page-sub">{{ total }} invoice{{ total !== 1 ? 's' : '' }} total</p>
+    </div>
+    <a routerLink="/invoices/create" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Invoice
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input class="search-input" [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+             placeholder="Search by payer, reference, invoice #...">
+    </div>
+    <select class="form-select-sm" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+      <option value="">All statuses</option>
+      <option *ngFor="let s of statuses.slice(1)" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+
+  <!-- Loading -->
+  <div class="skeleton-rows" *ngIf="loading">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+  </div>
+
+  <!-- Empty -->
+  <app-empty-state *ngIf="!loading && invoices.length === 0"
+    title="No invoices found"
+    description="Try adjusting your search or create your first invoice.">
+    <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+    </svg>
+    <a slot="action" routerLink="/invoices/create" class="btn-primary">Create Invoice</a>
+  </app-empty-state>
+
+  <!-- Table -->
+  <div class="table-card" *ngIf="!loading && invoices.length > 0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Payer</th>
+          <th>Amount (Fiat)</th>
+          <th>Expected crypto</th>
+          <th>Asset</th>
+          <th>Network</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of invoices">
+          <td>
+            <div class="mono small-text">{{ inv.invoiceNumber }}</div>
+            <div class="tiny-text muted">{{ inv.referenceCode }}</div>
+          </td>
+          <td>
+            <div>{{ inv.payerName || inv.payer?.name || '—' }}</div>
+            <div class="tiny-text muted">{{ inv.payerEmail || inv.payer?.email || '' }}</div>
+          </td>
+          <td class="mono">{{ inv.currency }} {{ inv.amount | number:'1.2-2' }}</td>
+          <td class="mono">{{ (inv.expectedCryptoAmount || 0) | number:'1.4-6' }}</td>
+          <td><app-badge [label]="inv.asset || inv.expectedCryptoAsset || '—'" type="neutral"></app-badge></td>
+          <td><app-badge [label]="inv.network || inv.expectedCryptoNetwork || '—'" type="neutral"></app-badge></td>
+          <td><app-badge [label]="inv.status" [type]="statusBadge(inv.status)"></app-badge></td>
+          <td>
+            <a [routerLink]="['/invoices', getId(inv)]" class="table-action">View →</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="table-footer pagination-row">
+      <span>Page {{ page }} · {{ invoices.length }} of {{ total }}</span>
+      <div class="pagination-btns">
+        <button class="btn-ghost-sm" [disabled]="page === 1" (click)="prevPage()">← Prev</button>
+        <button class="btn-ghost-sm" [disabled]="!hasMore" (click)="nextPage()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>

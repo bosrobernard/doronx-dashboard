@@ -1,0 +1,218 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Billing &amp; Plans</h2>
+      <p class="page-sub">Subscription, usage, SaaS bills, and API key</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-ghost-sm" (click)="generateBill()" [disabled]="generatingBill">
+        {{ generatingBill ? 'Generating...' : 'Generate current bill' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">Overview</button>
+    <button class="tab-btn" [class.active]="activeTab === 'bills'" (click)="activeTab = 'bills'">Bills</button>
+  </div>
+
+  <div class="skeleton-rows" *ngIf="loading">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3]" style="height:80px"></div>
+  </div>
+
+  <!-- ── OVERVIEW TAB ── -->
+  <ng-container *ngIf="!loading && activeTab === 'overview'">
+
+    <!-- Usage model notice -->
+    <div class="info-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>DoronPay uses <strong>pay-per-detection</strong> billing. One usage event per confirmed payment. TEST environment usage is non-billable.</span>
+    </div>
+
+    <!-- Current subscription -->
+    <div class="section-card" *ngIf="subscription">
+      <h3 class="section-card-title">Current Subscription</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Plan</span>
+          <span class="detail-value"><app-badge [label]="subscription.planCode" type="success"></app-badge></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Status</span>
+          <span class="detail-value"><app-badge [label]="subscription.status || 'ACTIVE'" type="success"></app-badge></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Environment</span>
+          <span class="detail-value"><app-badge [label]="subscription.environment"
+            [type]="subscription.environment === 'LIVE' ? 'success' : 'info'"></app-badge></span>
+        </div>
+        <div class="detail-item" *ngIf="subscription.nextBillingDate">
+          <span class="detail-label">Next billing date</span>
+          <span class="detail-value mono">{{ subscription.nextBillingDate | date:'mediumDate' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage summary -->
+    <div class="section-card" *ngIf="usage">
+      <h3 class="section-card-title">Usage Summary</h3>
+      <div class="stats-grid">
+        <app-stat-card label="Blockchain detections" [value]="usage.detections.toString() || '0'" accent="orange">
+          <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </app-stat-card>
+        <app-stat-card label="Invoices created" [value]="usage.invoicesCreated.toString() || '0'" accent="blue">
+          <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+        </app-stat-card>
+        <app-stat-card label="Webhooks sent" [value]="usage.webhooksSent.toString() || '0'" accent="green">
+          <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </app-stat-card>
+        <app-stat-card label="Period" [value]="usage.period || 'Current'" accent="purple">
+          <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </app-stat-card>
+      </div>
+    </div>
+
+    <!-- Workspace info -->
+    <div class="section-card">
+      <h3 class="section-card-title">Workspace Info</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Workspace ID</span>
+          <span class="detail-value mono small">{{ auth.auth?.workspaceId }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Business ID</span>
+          <span class="detail-value mono small">{{ auth.auth?.businessId }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Tenant ID</span>
+          <span class="detail-value mono small">{{ auth.auth?.tenantId }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Environment</span>
+          <span class="detail-value">
+            <app-badge [label]="auth.auth?.environment || ''"
+              [type]="auth.auth?.environment === 'LIVE' ? 'success' : 'info'"></app-badge>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <div class="section-card" *ngIf="auth.auth?.apiKey">
+      <h3 class="section-card-title">API Key</h3>
+      <p class="section-card-sub">Use with header <code>x-doronpay-api-key</code> for server-to-server calls.</p>
+      <div class="api-key-row">
+        <code class="api-key-val">{{ auth.auth?.apiKey }}</code>
+        <button class="btn-primary" (click)="copyApiKey()">Copy</button>
+      </div>
+    </div>
+
+    <!-- Plans grid -->
+    <div class="section-card">
+      <h3 class="section-card-title">Available Plans</h3>
+    </div>
+    <div class="plans-grid">
+      <div class="plan-card" *ngFor="let plan of plans" [class.current-plan]="isCurrent(plan)">
+        <div class="plan-card-head">
+          <div class="plan-label">{{ plan.name }}</div>
+          <div class="plan-price">{{ plan.monthlyFee === 0 ? 'Free' : ('$' + plan.monthlyFee + '/mo') }}</div>
+          <app-badge *ngIf="isCurrent(plan)" label="Current plan" type="success"></app-badge>
+        </div>
+        <ul class="plan-features" *ngIf="plan.features">
+          <li *ngFor="let f of plan.features">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="check-icon">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>{{ f }}
+          </li>
+        </ul>
+        <button class="btn-primary full" *ngIf="!isCurrent(plan)"
+          [disabled]="changingPlan" (click)="changePlan(plan.code)">
+          {{ changingPlan ? 'Switching...' : 'Switch to ' + plan.name }}
+        </button>
+        <button class="btn-ghost-sm full" *ngIf="isCurrent(plan)" disabled>Active plan</button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── BILLS TAB ── -->
+  <ng-container *ngIf="!loading && activeTab === 'bills'">
+    <app-empty-state *ngIf="bills.length === 0"
+      title="No bills yet" description="Bills are generated at end of each billing period.">
+      <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    </app-empty-state>
+
+    <div class="table-card" *ngIf="bills.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr><th>Bill #</th><th>Period</th><th>Amount</th><th>Status</th><th>Due</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let bill of bills">
+            <td class="mono">{{ bill.billNumber }}</td>
+            <td class="small-text">{{ bill.period || '—' }}</td>
+            <td class="mono">{{ bill.currency }} {{ bill.totalAmount | number:'1.2-2' }}</td>
+            <td><app-badge [label]="bill.status" [type]="bill.status === 'PAID' ? 'success' : 'warning'"></app-badge></td>
+            <td class="small-text muted">{{ bill.dueDate ? (bill.dueDate | date:'mediumDate') : '—' }}</td>
+            <td>
+              <button class="btn-ghost-sm" *ngIf="bill.status !== 'PAID'"
+                (click)="openPayForm(bill.billId ?? bill._id ?? '')">Pay with crypto</button>
+              <span class="muted tiny-text" *ngIf="bill.status === 'PAID'">Paid</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Inline pay form -->
+    <div class="form-card" *ngIf="showPayForm">
+      <h4 class="form-card-title">Pay Bill with Crypto</h4>
+      <form [formGroup]="payForm" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Asset</label>
+            <select class="form-input form-select" formControlName="asset">
+              <option value="USDT">USDT</option>
+              <option value="BTC">BTC</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Network</label>
+            <select class="form-input form-select" formControlName="network">
+              <option value="TRC20">TRC20</option>
+              <option value="BEP20">BEP20</option>
+              <option value="SOLANA">SOLANA</option>
+              <option value="BTC">BTC</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost-sm" (click)="showPayForm = null">Cancel</button>
+          <button type="button" class="btn-primary"
+            [disabled]="payingBillId === showPayForm"
+            (click)="payBill(showPayForm!)">
+            {{ payingBillId === showPayForm ? 'Creating payment...' : 'Get payment address' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+</div>

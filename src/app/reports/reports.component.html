@@ -1,0 +1,120 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Reports</h2>
+      <p class="page-sub">Invoice analytics and payment volume</p>
+    </div>
+    <!-- Date range filter -->
+    <div class="date-filter">
+      <input type="date" class="form-input" [(ngModel)]="fromDate" style="width:160px">
+      <span class="muted">to</span>
+      <input type="date" class="form-input" [(ngModel)]="toDate" style="width:160px">
+      <button class="btn-primary" (click)="load()">Apply</button>
+    </div>
+  </div>
+
+  <div class="skeleton-rows" *ngIf="loading">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3,4]" style="height:80px"></div>
+  </div>
+
+  <ng-container *ngIf="!loading && summary">
+    <!-- Invoice stats -->
+    <div class="stats-grid">
+      <app-stat-card label="Total invoices" [value]="summary.invoices.total.toString()" accent="orange">
+        <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      </app-stat-card>
+      <app-stat-card label="Paid invoices" [value]="summary.invoices.paid.toString()" accent="green">
+        <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </app-stat-card>
+      <app-stat-card label="Expired" [value]="summary.invoices.expired.toString()" accent="purple">
+        <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </app-stat-card>
+      <app-stat-card label="Blockchain detections" [value]="summary.detections.toString()" accent="blue">
+        <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </app-stat-card>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h4 class="chart-title">Invoice Status Breakdown</h4>
+        <canvas #statusChart class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4 class="chart-title">Revenue Volume by Currency</h4>
+        <canvas #networkChart class="chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Volume breakdown -->
+    <div class="section-card">
+      <h3 class="section-card-title">Revenue Volume</h3>
+      <app-empty-state *ngIf="volumeEntries.length === 0"
+        title="No revenue data" description="Revenue will appear here once invoices are paid.">
+        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </app-empty-state>
+      <div class="breakdown-pills" *ngIf="volumeEntries.length > 0">
+        <div class="breakdown-pill" *ngFor="let v of volumeEntries">
+          <span class="bp-label">{{ v.currency }}</span>
+          <span class="bp-count mono">{{ v.amount | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crypto payments received -->
+    <div class="section-card">
+      <h3 class="section-card-title">Crypto Payments Received</h3>
+      <app-empty-state *ngIf="paymentEntries.length === 0"
+        title="No payment data" description="Crypto payment totals appear here.">
+        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+      </app-empty-state>
+      <div class="breakdown-pills" *ngIf="paymentEntries.length > 0">
+        <div class="breakdown-pill" *ngFor="let p of paymentEntries">
+          <span class="bp-label">{{ p.asset }}</span>
+          <span class="bp-count mono">{{ p.amount | number:'1.4-6' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Webhook stats -->
+    <div class="section-card">
+      <h3 class="section-card-title">Webhook Delivery</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Sent</span>
+          <span class="detail-value mono large" style="color:var(--green)">{{ summary.webhooks.sent }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Failed</span>
+          <span class="detail-value mono large" [style.color]="summary.webhooks.failed > 0 ? 'var(--red)' : 'var(--gray)'">
+            {{ summary.webhooks.failed }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Empty when no data after load -->
+  <app-empty-state *ngIf="!loading && !summary"
+    title="No report data" description="Adjust the date range and try again.">
+    <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line>
+      <line x1="6" y1="20" x2="6" y2="14"></line>
+    </svg>
+  </app-empty-state>
+</div>

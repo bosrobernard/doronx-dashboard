@@ -1,0 +1,117 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Webhooks</h2>
+      <p class="page-sub">Real-time payment event delivery to your endpoint</p>
+    </div>
+  </div>
+
+  <div class="webhooks-layout">
+    <!-- Left: Info & Events -->
+    <div class="webhooks-main">
+
+      <div class="info-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Webhooks are <strong>callback-based</strong>. When a payment is detected on-chain, the gateway pushes the event to DoronX, which then forwards it to your configured endpoint with an idempotency key.</span>
+      </div>
+
+      <div class="section-card">
+        <h3 class="section-card-title">Event Types</h3>
+        <div class="event-list">
+          <div class="event-item" *ngFor="let e of events">
+            <div class="event-type mono">{{ e.type }}</div>
+            <div class="event-desc">{{ e.description }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3 class="section-card-title">Callback Status Mapping</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Gateway Event</th>
+              <th>Condition</th>
+              <th>PaymentIntent Status</th>
+              <th>Invoice Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>SEEN</code></td>
+              <td>confirmations = 0</td>
+              <td><app-badge label="PAYMENT_DETECTED" type="info"></app-badge></td>
+              <td><app-badge label="PAYMENT_DETECTED" type="info"></app-badge></td>
+            </tr>
+            <tr>
+              <td><code>SEEN</code></td>
+              <td>confirmations > 0, not final</td>
+              <td><app-badge label="CONFIRMING" type="info"></app-badge></td>
+              <td><app-badge label="CONFIRMING" type="info"></app-badge></td>
+            </tr>
+            <tr>
+              <td><code>CONFIRMED</code></td>
+              <td>amount within tolerance</td>
+              <td><app-badge label="PAID" type="success"></app-badge></td>
+              <td><app-badge label="PAID" type="success"></app-badge></td>
+            </tr>
+            <tr>
+              <td><code>CONFIRMED</code></td>
+              <td>detected &lt; expected</td>
+              <td><app-badge label="UNDERPAID" type="error"></app-badge></td>
+              <td><app-badge label="UNDERPAID" type="error"></app-badge></td>
+            </tr>
+            <tr>
+              <td><code>CONFIRMED</code></td>
+              <td>detected > expected</td>
+              <td><app-badge label="OVERPAID" type="orange"></app-badge></td>
+              <td><app-badge label="OVERPAID" type="orange"></app-badge></td>
+            </tr>
+            <tr>
+              <td><code>IGNORED</code></td>
+              <td>dust / below min</td>
+              <td><app-badge label="No change" type="neutral"></app-badge></td>
+              <td><app-badge label="No change" type="neutral"></app-badge></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-card">
+        <h3 class="section-card-title">Important Notes</h3>
+        <ul class="notes-list">
+          <li>Every callback includes an <code>idempotencyKey</code> — always deduplicate on this field to prevent double-billing.</li>
+          <li>Every callback includes a <code>referenceId</code> equal to your <code>paymentIntentId</code> — use this to match the right invoice.</li>
+          <li>The gateway <code>DepositIntent</code> status is never marked <code>PAID</code> — payment status lives entirely within DoronX.</li>
+          <li>Ensure your webhook endpoint is reachable from the DoronX gateway server and returns <code>2xx</code> promptly.</li>
+          <li>Configure your endpoint URL in your workspace settings.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right: Payload sample -->
+    <div class="webhooks-side">
+      <div class="code-card">
+        <div class="code-card-head">
+          <span class="code-card-title">Sample webhook payload</span>
+          <button class="copy-btn-sm" (click)="copy(samplePayload)">
+            {{ copied ? '✅ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <pre class="code-block">{{ samplePayload }}</pre>
+      </div>
+
+      <div class="info-card-sm">
+        <h4 class="info-card-sm-title">Delivery endpoint</h4>
+        <p>Configure your webhook endpoint in the workspace settings under <strong>Developer → Webhooks</strong>. DoronX posts to your endpoint after every state change.</p>
+      </div>
+
+      <div class="info-card-sm">
+        <h4 class="info-card-sm-title">Retry policy</h4>
+        <p>Failed deliveries are retried with exponential backoff. Monitor delivery failures in your Reports section and ensure your endpoint returns 200 promptly.</p>
+      </div>
+    </div>
+  </div>
+</div>

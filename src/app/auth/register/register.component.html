@@ -1,0 +1,118 @@
+<div class="auth-page">
+  <div class="auth-card wide">
+   <div class="auth-logo">
+      <!-- <div class="auth-logo-mark">D</div>
+      <span class="auth-logo-text">DoronX</span> -->
+      <img src="/assets/images/dorx-full.png" width="100" />
+    </div>
+    <h1 class="auth-title">Create your workspace</h1>
+    <p class="auth-sub">Non-custodial crypto invoicing for your business</p>
+
+    <!-- Step indicator -->
+    <div class="step-indicator">
+      <div class="step" [class.active]="step >= 1" [class.done]="step > 1">
+        <span class="step-num">1</span><span class="step-lbl">Account</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.active]="step >= 2">
+        <span class="step-num">2</span><span class="step-lbl">Business</span>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
+
+      <!-- Step 1: Account -->
+      <ng-container *ngIf="step === 1">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full name</label>
+            <input class="form-input" formControlName="name" placeholder="John Doe">
+            <div class="form-error" *ngIf="f('name').touched && f('name').errors?.['required']">Name is required</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone number</label>
+            <input class="form-input" formControlName="phone" placeholder="0240000000">
+            <div class="form-error" *ngIf="f('phone').touched && f('phone').errors?.['required']">Phone is required</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input class="form-input" type="email" formControlName="email" placeholder="john@business.com">
+          <div class="form-error" *ngIf="f('email').touched && f('email').errors?.['required']">Email is required</div>
+          <div class="form-error" *ngIf="f('email').touched && f('email').errors?.['email']">Enter a valid email</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <input class="form-input" [type]="showPass ? 'text' : 'password'"
+                   formControlName="password" placeholder="Min 8 characters">
+            <button type="button" class="input-eye" (click)="showPass = !showPass">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+          <div class="form-error" *ngIf="f('password').touched && f('password').errors?.['minlength']">Minimum 8 characters</div>
+        </div>
+        <button type="button" class="btn-auth" (click)="next()">Continue →</button>
+      </ng-container>
+
+      <!-- Step 2: Business -->
+      <ng-container *ngIf="step === 2">
+        <div class="form-group">
+          <label class="form-label">Business name</label>
+          <input class="form-input" formControlName="businessName" placeholder="Demo Shop">
+          <div class="form-error" *ngIf="f('businessName').touched && f('businessName').errors?.['required']">Business name is required</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business slug <span class="form-hint">(your payment URL handle)</span></label>
+          <div class="slug-preview">
+            <span class="slug-base">pay.doronpay.com/</span>
+            <input class="form-input slug-input" formControlName="businessSlug" placeholder="demo-shop">
+          </div>
+          <div class="form-error" *ngIf="f('businessSlug').touched && f('businessSlug').errors?.['pattern']">Only lowercase letters, numbers and hyphens</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Default currency</label>
+            <select class="form-input form-select" formControlName="defaultCurrency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Timezone</label>
+            <select class="form-input form-select" formControlName="timezone">
+              <option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Environment</label>
+            <select class="form-input form-select" formControlName="environment">
+              <option value="LIVE">Live</option>
+              <option value="TEST">Test</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Plan</label>
+            <input class="form-input" value="FREE" disabled>
+          </div>
+        </div>
+        <div class="auth-btn-row">
+          <button type="button" class="btn-auth-ghost" (click)="step = 1">← Back</button>
+          <button type="submit" class="btn-auth" [class.loading]="loading" [disabled]="loading">
+            <span *ngIf="!loading">Create workspace</span>
+            <span *ngIf="loading" class="spinner"></span>
+          </button>
+        </div>
+      </ng-container>
+    </form>
+
+    <p class="auth-link">Already have a workspace? <a routerLink="/auth/login">Sign in</a></p>
+  </div>
+  <div class="auth-bg"><div class="auth-bg-orb"></div></div>
+</div>
+
+
+

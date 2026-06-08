@@ -1,0 +1,211 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Rate Engine</h2>
+      <p class="page-sub">Manage trade pairs, markups, and live rate quotes</p>
+    </div>
+    <button class="btn-primary" (click)="showPairForm = !showPairForm">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Add Trade Pair
+    </button>
+  </div>
+
+  <div class="rates-layout">
+    <!-- Left: Trade Pairs -->
+    <div class="rates-main">
+
+      <!-- Add trade pair form -->
+      <div class="form-card" *ngIf="showPairForm">
+        <h4 class="form-card-title">New Trade Pair</h4>
+        <form [formGroup]="pairForm" (ngSubmit)="savePair()" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Base asset</label>
+              <select class="form-input form-select" formControlName="baseAsset">
+                <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quote currency</label>
+              <select class="form-input form-select" formControlName="quoteCurrency">
+                <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Allowed networks</label>
+            <div class="network-toggle-group">
+              <button type="button" *ngFor="let net of allNetworks"
+                class="network-toggle-btn"
+                [class.selected]="isNetworkSelected(net)"
+                (click)="toggleNetwork(net)">
+                {{ net }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Markup %</label>
+              <input class="form-input" type="number" formControlName="markupPercent" min="0" max="50" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Spread %</label>
+              <input class="form-input" type="number" formControlName="spreadPercent" min="0" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rate TTL (seconds)</label>
+              <input class="form-input" type="number" formControlName="rateTtlSeconds" min="60">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Min invoice amount</label>
+              <input class="form-input" type="number" formControlName="minInvoiceAmount" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max invoice amount</label>
+              <input class="form-input" type="number" formControlName="maxInvoiceAmount">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Rate source</label>
+              <select class="form-input form-select" formControlName="rateSource">
+                <option *ngFor="let s of rateSources" [value]="s">{{ s }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pricing mode</label>
+              <select class="form-input form-select" formControlName="pricingMode">
+                <option *ngFor="let m of pricingModes" [value]="m">{{ m }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost-sm" (click)="showPairForm = false">Cancel</button>
+            <button type="submit" class="btn-primary" [class.loading]="savingPair" [disabled]="savingPair">
+              <span *ngIf="!savingPair">Save Trade Pair</span>
+              <span *ngIf="savingPair" class="spinner"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Loading -->
+      <div class="skeleton-rows" *ngIf="loading">
+        <div class="skeleton-row" *ngFor="let i of [1,2,3]" style="height:120px"></div>
+      </div>
+
+      <!-- Empty -->
+      <app-empty-state *ngIf="!loading && tradePairs.length === 0"
+        title="No trade pairs configured"
+        description="Add a trade pair to define how your invoices are priced.">
+        <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        </svg>
+        <button slot="action" class="btn-primary" (click)="showPairForm = true">Add Trade Pair</button>
+      </app-empty-state>
+
+      <!-- Trade pair cards -->
+      <div class="pair-grid" *ngIf="!loading && tradePairs.length > 0">
+        <div class="pair-card" *ngFor="let p of tradePairs">
+          <div class="pair-card-head">
+            <div class="pair-symbol">{{ p.symbol }}</div>
+            <div class="pair-badges">
+              <app-badge [label]="p.status" [type]="p.status === 'ACTIVE' ? 'success' : 'neutral'"></app-badge>
+              <app-badge [label]="p.pricingMode" type="info"></app-badge>
+            </div>
+          </div>
+          <div class="pair-networks">
+            <app-badge *ngFor="let n of p.allowedNetworks" [label]="n" type="neutral"></app-badge>
+          </div>
+          <div class="pair-meta-grid">
+            <div class="pair-meta-item">
+              <span class="pair-meta-lbl">Markup</span>
+              <span class="pair-meta-val">{{ p.markupPercent }}%</span>
+            </div>
+            <div class="pair-meta-item">
+              <span class="pair-meta-lbl">Spread</span>
+              <span class="pair-meta-val">{{ p.spreadPercent }}%</span>
+            </div>
+            <div class="pair-meta-item">
+              <span class="pair-meta-lbl">Source</span>
+              <span class="pair-meta-val small">{{ p.rateSource }}</span>
+            </div>
+            <div class="pair-meta-item">
+              <span class="pair-meta-lbl">TTL</span>
+              <span class="pair-meta-val">{{ p.rateTtlSeconds }}s</span>
+            </div>
+          </div>
+          <div class="pair-card-footer">
+            <button class="btn-ghost-sm"
+              [class.loading]="refreshingId === p._id"
+              [disabled]="refreshingId === p._id"
+              (click)="refreshRate(p._id || '')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              {{ refreshingId === p._id ? 'Refreshing...' : 'Refresh rate' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Quote calculator -->
+    <div class="rates-side">
+      <div class="quote-panel">
+        <h4 class="quote-panel-title">Live Rate Quote</h4>
+        <form [formGroup]="quoteForm" (ngSubmit)="getQuote()" novalidate>
+          <div class="form-group">
+            <label class="form-label">Amount</label>
+            <input class="form-input" type="number" formControlName="amount" placeholder="1000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Invoice currency</label>
+            <select class="form-input form-select" formControlName="invoiceCurrency">
+              <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pay in asset</label>
+            <select class="form-input form-select" formControlName="paymentAsset">
+              <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary full" [class.loading]="quoting" [disabled]="quoting">
+            <svg *ngIf="!quoting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            </svg>
+            {{ quoting ? 'Getting quote...' : 'Get live quote' }}
+          </button>
+        </form>
+
+        <div class="quote-result" *ngIf="quote">
+          <div class="quote-result-row">
+            <span>Symbol</span><span class="mono">{{ quote.symbol }}</span>
+          </div>
+          <div class="quote-result-row">
+            <span>Rate</span><span class="mono">{{ quote.rate | number:'1.4-4' }}</span>
+          </div>
+          <div class="quote-result-row">
+            <span>Invoice</span><span class="mono">{{ quote.invoiceCurrency }} {{ quote.amount | number:'1.2-2' }}</span>
+          </div>
+          <div class="quote-result-row highlight">
+            <span>Customer pays</span>
+            <span class="mono large orange">{{ quote.cryptoUnits | number:'1.4-6' }} {{ quote.asset }}</span>
+          </div>
+          <div class="quote-source">Source: {{ quote.rateSnapshot?.provider }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

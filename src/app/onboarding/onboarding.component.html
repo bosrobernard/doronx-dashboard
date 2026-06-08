@@ -1,0 +1,91 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Workspace Setup</h2>
+      <p class="page-sub">Complete the checklist to start accepting crypto payments</p>
+    </div>
+    <a routerLink="/dashboard" class="btn-ghost-sm">Skip for now</a>
+  </div>
+
+  <div class="skeleton-rows" *ngIf="loading">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]" style="height:70px"></div>
+  </div>
+
+  <ng-container *ngIf="!loading && setup">
+    <!-- Progress bar -->
+    <div class="onboarding-progress-card">
+      <div class="op-header">
+        <div class="op-title">
+          Setup progress
+          <app-badge [label]="setup.status" [type]="setup.status === 'COMPLETE' ? 'success' : 'warning'"></app-badge>
+        </div>
+        <span class="op-pct" [style.color]="progressColor">{{ setup.progress }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="setup.progress" [style.background]="progressColor"></div>
+      </div>
+      <div class="op-flags">
+        <span class="flag" [class.ok]="setup.canCreateInvoice">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline *ngIf="setup.canCreateInvoice" points="20 6 9 17 4 12"></polyline>
+            <line *ngIf="!setup.canCreateInvoice" x1="18" y1="6" x2="6" y2="18"></line>
+            <line *ngIf="!setup.canCreateInvoice" x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Can create invoices
+        </span>
+        <span class="flag" [class.ok]="setup.canGoLive">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline *ngIf="setup.canGoLive" points="20 6 9 17 4 12"></polyline>
+            <line *ngIf="!setup.canGoLive" x1="18" y1="6" x2="6" y2="18"></line>
+            <line *ngIf="!setup.canGoLive" x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Can go LIVE
+        </span>
+      </div>
+    </div>
+
+    <!-- Next step banner -->
+    <div class="next-step-banner" *ngIf="setup.nextStep">
+      <div class="ns-label">Next step</div>
+      <div class="ns-title">{{ setup.nextStep.title }}</div>
+      <button class="btn-primary" (click)="navigate(setup.nextStep!)">
+        {{ setup.nextStep.action?.label || 'Complete' }} →
+      </button>
+    </div>
+
+    <!-- Checklist -->
+    <div class="section-card">
+      <h3 class="section-card-title">Setup Checklist</h3>
+      <div class="checklist">
+        <div class="checklist-item" *ngFor="let step of steps" [class.done]="step.done">
+          <div class="ci-check">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline *ngIf="step.done" points="20 6 9 17 4 12"></polyline>
+              <circle *ngIf="!step.done" cx="12" cy="12" r="6" stroke-width="2"></circle>
+            </svg>
+          </div>
+          <div class="ci-label">{{ step.label }}</div>
+          <a [routerLink]="step.route" class="ci-action" *ngIf="!step.done">
+            Complete →
+          </a>
+          <span class="ci-done-label" *ngIf="step.done">Done</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Missing required -->
+    <div class="section-card" *ngIf="setup.missingRequired.length > 0">
+      <h3 class="section-card-title">Required before creating invoices</h3>
+      <div class="missing-list">
+        <div class="missing-item" *ngFor="let m of setup.missingRequired">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {{ m.title }}
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

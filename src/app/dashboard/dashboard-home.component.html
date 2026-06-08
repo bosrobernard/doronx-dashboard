@@ -1,0 +1,140 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Good day, {{ userName }} 👋</h2>
+      <p class="page-sub">Workspace overview for this month</p>
+    </div>
+    <a routerLink="/invoices/create" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Invoice
+    </a>
+  </div>
+
+  <!-- Setup banner -->
+  <div class="setup-banner" *ngIf="!setupLoading && showSetupBanner">
+    <div class="sb-left">
+      <div class="sb-title">Complete your workspace setup</div>
+      <div class="sb-sub" *ngIf="setup?.nextStep">Next: {{ setup!.nextStep!.title }}</div>
+      <div class="sb-progress">
+        <div class="sb-track">
+          <div class="sb-fill" [style.width.%]="setupProgress"></div>
+        </div>
+        <span class="sb-pct">{{ setupProgress }}%</span>
+      </div>
+    </div>
+    <a routerLink="/onboarding" class="btn-primary">Continue setup →</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <app-stat-card label="Total invoices (month)" [value]="totalInvoices.toString()" accent="orange">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+    </app-stat-card>
+    <app-stat-card label="Paid invoices" [value]="paidInvoices.toString()" accent="green">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </app-stat-card>
+    <app-stat-card label="Blockchain detections" [value]="detections.toString()" accent="blue">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </app-stat-card>
+    <app-stat-card label="Webhooks sent" [value]="webhooksSent.toString()" accent="purple">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
+    </app-stat-card>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="quick-actions">
+    <a routerLink="/invoices/create" class="qa-card">
+      <div class="qa-icon qa-orange">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </div>
+      <div class="qa-label">Create Invoice</div>
+    </a>
+    <a routerLink="/payment-stands" class="qa-card">
+      <div class="qa-icon qa-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </div>
+      <div class="qa-label">Payment Stands</div>
+    </a>
+    <a routerLink="/rates" class="qa-card">
+      <div class="qa-icon qa-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        </svg>
+      </div>
+      <div class="qa-label">Rate Quote</div>
+    </a>
+    <a routerLink="/reports" class="qa-card">
+      <div class="qa-icon qa-purple">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+      </div>
+      <div class="qa-label">Reports</div>
+    </a>
+  </div>
+
+  <!-- Recent invoices -->
+  <div class="section-card">
+    <div class="section-card-head">
+      <h3 class="section-card-title">Recent Invoices</h3>
+      <a routerLink="/invoices" class="link-btn">View all →</a>
+    </div>
+
+    <div class="skeleton-rows" *ngIf="loading">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+
+    <app-empty-state *ngIf="!loading && invoices.length === 0"
+      title="No invoices yet"
+      description="Create your first invoice to start accepting crypto payments.">
+      <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <a slot="action" routerLink="/invoices/create" class="btn-primary">Create Invoice</a>
+    </app-empty-state>
+
+    <table class="data-table" *ngIf="!loading && invoices.length > 0">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Payer</th>
+          <th>Amount</th>
+          <th>Crypto</th>
+          <th>Network</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of invoices">
+          <td class="mono small-text">{{ inv.invoiceNumber }}</td>
+          <td>{{ inv.payerName || inv.payer?.name || '—' }}</td>
+          <td class="mono">{{ inv.currency }} {{ inv.amount | number:'1.2-2' }}</td>
+          <td class="mono">{{ (inv.expectedCryptoAmount || 0) | number:'1.4-6' }} {{ inv.asset || inv.expectedCryptoAsset }}</td>
+          <td><app-badge [label]="inv.network || inv.expectedCryptoNetwork || '—'" type="neutral"></app-badge></td>
+          <td><app-badge [label]="inv.status" [type]="statusBadge(inv.status)"></app-badge></td>
+          <td><a [routerLink]="['/invoices', getId(inv)]" class="table-action">View</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

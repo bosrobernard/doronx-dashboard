@@ -1,0 +1,59 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <!-- <div class="auth-logo-mark">D</div>
+      <span class="auth-logo-text">DoronX</span> -->
+      <img src="/assets/images/dorx-full.png" width="100" />
+    </div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to your merchant workspace</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
+
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" formControlName="email"
+               placeholder="you@business.com" autocomplete="email">
+        <div class="form-error" *ngIf="f('email').touched && f('email').errors?.['required']">Email is required</div>
+        <div class="form-error" *ngIf="f('email').touched && f('email').errors?.['email']">Enter a valid email</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <input class="form-input" [type]="showPass ? 'text' : 'password'"
+                 formControlName="password" placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="input-eye" (click)="showPass = !showPass">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path *ngIf="!showPass" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle *ngIf="!showPass" cx="12" cy="12" r="3"></circle>
+              <path *ngIf="showPass" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+              <path *ngIf="showPass" d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+              <line *ngIf="showPass" x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="form-error" *ngIf="f('password').touched && f('password').errors?.['required']">Password is required</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Environment</label>
+        <select class="form-input form-select" formControlName="environment">
+          <option value="LIVE">Live</option>
+          <option value="TEST">Test</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-auth" [class.loading]="loading" [disabled]="loading">
+        <span *ngIf="!loading">Sign in</span>
+        <span *ngIf="loading" class="spinner"></span>
+      </button>
+    </form>
+
+    <p class="auth-link">Don't have an account? <a routerLink="/auth/register">Create workspace</a></p>
+  </div>
+
+  <div class="auth-bg">
+    <div class="auth-bg-orb"></div>
+  </div>
+</div>

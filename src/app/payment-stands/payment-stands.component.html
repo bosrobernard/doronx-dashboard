@@ -1,0 +1,183 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Payment Stands</h2>
+      <p class="page-sub">Reusable QR codes for shops, counters, and tables</p>
+    </div>
+    <button class="btn-primary" (click)="showForm = !showForm">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Create Stand
+    </button>
+  </div>
+
+  <div class="info-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>Payment stands generate a reusable QR code. A customer scans it, enters an amount (or sees a fixed amount), and a normal invoice is created. Funds go directly to your connected wallet.</span>
+  </div>
+
+  <!-- CREATE FORM -->
+  <div class="form-card" *ngIf="showForm">
+    <h4 class="form-card-title">New Payment Stand</h4>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stand name</label>
+          <input class="form-input" formControlName="standName" placeholder="Table 12 / Counter A / Main Register">
+          <div class="form-error" *ngIf="f('standName').touched && f('standName').errors?.['required']">Required</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stand code <span class="form-hint">(auto-generated, uppercase)</span></label>
+          <input class="form-input mono" formControlName="standCode" placeholder="TABLE-12">
+          <div class="form-error" *ngIf="f('standCode').touched && f('standCode').errors?.['pattern']">Uppercase letters, numbers, hyphens only</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location <span class="form-hint">(optional)</span></label>
+          <input class="form-input" formControlName="location" placeholder="East Legon Branch">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Table / Counter number <span class="form-hint">(optional)</span></label>
+          <input class="form-input" formControlName="tableNumber" placeholder="12">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Customer instructions <span class="form-hint">(optional)</span></label>
+        <input class="form-input" formControlName="instructions" placeholder="Scan to pay your bill.">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Mode</label>
+          <select class="form-input form-select" formControlName="mode">
+            <option value="OPEN_AMOUNT">Open amount (customer enters)</option>
+            <option value="FIXED_AMOUNT">Fixed amount</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Invoice currency</label>
+          <select class="form-input form-select" formControlName="currency">
+            <option *ngFor="let c of currencies" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Allowed assets</label>
+        <div class="network-toggle-group">
+          <button type="button" *ngFor="let a of assets" class="network-toggle-btn"
+            [class.selected]="isAssetSelected(a)" (click)="toggleAsset(a)">{{ a }}</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Default asset</label>
+          <select class="form-input form-select" formControlName="defaultAsset">
+            <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default network</label>
+          <select class="form-input form-select" formControlName="defaultNetwork">
+            <option *ngFor="let n of networks" [value]="n">{{ n }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-ghost-sm" (click)="showForm = false">Cancel</button>
+        <button type="submit" class="btn-primary" [class.loading]="saving" [disabled]="saving">
+          <span *ngIf="!saving">Create Payment Stand</span>
+          <span *ngIf="saving" class="spinner"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- LOADING -->
+  <div class="skeleton-rows" *ngIf="loading">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3]" style="height:120px"></div>
+  </div>
+
+  <!-- EMPTY -->
+  <app-empty-state *ngIf="!loading && stands.length === 0"
+    title="No payment stands yet"
+    description="Create a stand to generate a reusable QR code for your shop, table, or counter.">
+    <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+    </svg>
+    <button slot="action" class="btn-primary" (click)="showForm = true">Create Stand</button>
+  </app-empty-state>
+
+  <!-- STANDS GRID -->
+  <div class="stands-grid" *ngIf="!loading && stands.length > 0">
+    <div class="stand-card" *ngFor="let stand of stands">
+      <div class="stand-card-head">
+        <div class="stand-name">{{ stand.standName }}</div>
+        <div class="stand-badges">
+          <app-badge [label]="stand.standCode" type="neutral"></app-badge>
+          <app-badge [label]="stand.mode" type="info"></app-badge>
+          <app-badge *ngIf="stand.isActive === false" label="DISABLED" type="error"></app-badge>
+        </div>
+      </div>
+
+      <div class="stand-meta">
+        <span *ngIf="stand.location" class="stand-meta-item">📍 {{ stand.location }}</span>
+        <span *ngIf="stand.tableNumber" class="stand-meta-item">🪑 Table {{ stand.tableNumber }}</span>
+        <span class="stand-meta-item">{{ stand.currency }} · {{ stand.defaultAsset }}/{{ stand.defaultNetwork }}</span>
+      </div>
+
+      <div class="stand-actions">
+        <button class="btn-ghost-sm" (click)="viewStand(stand)">
+          {{ selectedStand?.standCode === stand.standCode ? 'Hide details' : 'View details' }}
+        </button>
+        <a *ngIf="stand.publicUrl" [href]="stand.publicUrl" target="_blank" class="btn-ghost-sm">Open →</a>
+        <button *ngIf="stand.printUrl" class="btn-ghost-sm" (click)="openPrint(stand.printUrl!)">Print QR</button>
+        <button class="btn-ghost-sm danger" (click)="disable(stand)"
+          [disabled]="disablingId === (stand.standId ?? stand._id)"
+          *ngIf="stand.isActive !== false">
+          {{ disablingId === (stand.standId ?? stand._id) ? '...' : 'Disable' }}
+        </button>
+      </div>
+
+      <!-- Expanded detail -->
+      <div class="stand-detail" *ngIf="selectedStand?.standCode === stand.standCode">
+        <div class="stand-detail-row" *ngIf="stand.publicUrl">
+          <span class="sdl">Public URL</span>
+          <div class="copy-row">
+            <code class="sdr">{{ stand.publicUrl }}</code>
+            <button class="copy-btn" (click)="copyUrl(stand.publicUrl!)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="stand-detail-row" *ngIf="stand.instructions">
+          <span class="sdl">Instructions</span>
+          <span class="sdr">{{ stand.instructions }}</span>
+        </div>
+        <div class="stand-detail-row">
+          <span class="sdl">Allowed assets</span>
+          <div class="sdr flex-row">
+            <app-badge *ngFor="let a of stand.allowedAssets" [label]="a" type="neutral"></app-badge>
+          </div>
+        </div>
+        <!-- QR Code preview -->
+        <div class="qr-preview" *ngIf="stand.qrCode">
+          <img [src]="stand.qrCode" alt="QR Code" class="qr-img">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
