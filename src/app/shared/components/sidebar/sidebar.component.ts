@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthState } from '../../../core/models';
+import { ConfirmModalService } from '../../../core/services/confirm-modal.service';
 
 interface NavItem { label: string; icon: string; route: string; badge?: string; }
 
@@ -21,14 +22,30 @@ export class SidebarComponent implements OnInit {
     { label: 'Billing',         icon: 'dollar-sign', route: '/billing' },
   ];
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private confirmModal: ConfirmModalService,
+  ) {}
 
   ngOnInit(): void { this.authService.auth$.subscribe(a => this.auth = a); }
 
   toggle(): void { this.collapsed = !this.collapsed; }
   toggleMobile(): void { this.mobileOpen = !this.mobileOpen; }
   closeMobile(): void { this.mobileOpen = false; }
-  logout(): void { this.authService.logout(); }
+
+  async logout(): Promise<void> {
+    const confirmed = await this.confirmModal.confirm({
+      title: 'Sign out',
+      message: 'You\'ll need to log in again to access your account.',
+      confirmLabel: 'Sign out',
+      cancelLabel: 'Stay signed in',
+      danger: true,
+    });
+
+    if (confirmed) {
+      this.authService.logout();
+    }
+  }
 
   get initials(): string {
     const name = this.auth?.user?.name ?? this.auth?.businessName ?? '';
@@ -41,5 +58,3 @@ export class SidebarComponent implements OnInit {
 
   get envBadge(): string { return this.auth?.environment ?? ''; }
 }
-
-

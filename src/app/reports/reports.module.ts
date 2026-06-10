@@ -10,3 +10,5 @@ const routes: Routes = [{ path: '', component: ReportsComponent }];
   imports: [SharedModule, RouterModule.forChild(routes)]
 })
 export class ReportsModule {}
+
+

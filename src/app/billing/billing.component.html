@@ -64,7 +64,7 @@
 
     <!-- Usage summary -->
     <div class="section-card">
-      <h3 class="section-card-title">Usage Summary</h3>
+      <h3 class="section-card-title" style="margin-bottom: 10px;">Usage Summary</h3>
       <ng-container *ngIf="usage; else noUsage">
         <div class="stats-grid">
           <app-stat-card label="Blockchain detections" [value]="usage.detections.toString() || '0'" accent="orange">
@@ -240,5 +240,7 @@
     </div>
   </ng-container>
 </div>
+
+
 
 

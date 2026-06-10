@@ -9,6 +9,7 @@ import {
   BillingUsage,
   BillingBill,
 } from '../core/models';
+import { ConfirmModalService } from '../core/services/confirm-modal.service';
 
 @Component({ selector: 'app-billing', templateUrl: './billing.component.html' })
 export class BillingComponent implements OnInit {
@@ -22,13 +23,14 @@ export class BillingComponent implements OnInit {
   payingBillId: string | null = null;
   activeTab: 'overview' | 'bills' = 'overview';
   payForm: FormGroup;
-  showPayForm: string | null = null; // billId being paid
+  showPayForm: string | null = null;
 
   constructor(
     public auth: AuthService,
     private billingSvc: BillingService,
     private toast: ToastService,
     private fb: FormBuilder,
+    private confirmModal: ConfirmModalService,
   ) {
     this.payForm = this.fb.group({
       asset: ['USDT', Validators.required],
@@ -51,11 +53,9 @@ export class BillingComponent implements OnInit {
       .then(([plans, sub, usage, bills]) => {
         this.plans = (plans as any)?.data ?? [];
 
-        // Subscription is nested under data.subscription
         const subData = (sub as any)?.data;
         this.subscription = subData?.subscription ?? subData ?? null;
 
-        // Usage is under data.items[], map to BillingUsage shape
         const usageData = (usage as any)?.data;
         if (usageData?.items) {
           const detections = usageData.items.find((i: any) =>
@@ -87,24 +87,33 @@ export class BillingComponent implements OnInit {
       });
   }
 
-  changePlan(planCode: string): void {
+  async changePlan(planCode: string): Promise<void> {
     if (planCode === this.subscription?.planCode) return;
-    if (!confirm(`Switch to the ${planCode} plan?`)) return;
+
+    const planName = this.plans.find(p => p.code === planCode)?.name ?? planCode;
+    const isFree = planCode === 'FREE';
+
+    const confirmed = await this.confirmModal.confirm({
+      title: `Switch to ${planName}`,
+      message: isFree
+        ? 'You\'ll lose access to paid features immediately. Are you sure?'
+        : `Your subscription will be updated to the ${planName} plan. You can change this at any time.`,
+      confirmLabel: `Switch to ${planName}`,
+      cancelLabel: 'Keep current plan',
+      danger: isFree,
+    });
+
+    if (!confirmed) return;
+
     this.changingPlan = true;
-    this.billingSvc
-      .changePlan(planCode, 'Merchant-initiated plan change')
-      .subscribe({
-        next: () => {
-          this.toast.success('Plan changed!');
-          this.loadAll();
-        },
-        error: () => {
-          this.changingPlan = false;
-        },
-        complete: () => {
-          this.changingPlan = false;
-        },
-      });
+    this.billingSvc.changePlan(planCode, 'Merchant-initiated plan change').subscribe({
+      next: () => {
+        this.toast.success('Plan changed!');
+        this.loadAll();
+      },
+      error: () => { this.changingPlan = false; },
+      complete: () => { this.changingPlan = false; },
+    });
   }
 
   generateBill(): void {
@@ -114,12 +123,8 @@ export class BillingComponent implements OnInit {
         this.toast.success(`Bill ${res.data.billNumber} generated`);
         this.loadAll();
       },
-      error: () => {
-        this.generatingBill = false;
-      },
-      complete: () => {
-        this.generatingBill = false;
-      },
+      error: () => { this.generatingBill = false; },
+      complete: () => { this.generatingBill = false; },
     });
   }
 
@@ -128,27 +133,32 @@ export class BillingComponent implements OnInit {
     this.payForm.reset({ asset: 'USDT', network: 'TRC20' });
   }
 
-  payBill(billId: string): void {
+  async payBill(billId: string): Promise<void> {
     if (this.payForm.invalid) return;
-    this.payingBillId = billId;
     const { asset, network } = this.payForm.value;
+
+    const confirmed = await this.confirmModal.confirm({
+      title: 'Confirm crypto payment',
+      message: `You'll receive a ${asset} (${network}) deposit address. Send the exact amount shown to complete payment.`,
+      confirmLabel: 'Get payment address',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) return;
+
+    this.payingBillId = billId;
     this.billingSvc.payBillCrypto(billId, asset, network).subscribe({
       next: (res) => {
-        this.toast.success(
-          'Payment intent created — send crypto to the address shown',
-        );
+        this.toast.success('Payment intent created — send crypto to the address shown');
         this.showPayForm = null;
-        alert(
-          `Send ${res.data.payment.expectedCryptoAmount} ${asset} to:\n${res.data.payment.receivingAddress}`,
-        );
+        // Use a nicer inline display instead of alert() — show address in a toast or separate UI
+        const addr = res.data.payment.receivingAddress;
+        const amount = res.data.payment.expectedCryptoAmount;
+        this.toast.success(`Send ${amount} ${asset} to: ${addr}`);
         this.loadAll();
       },
-      error: () => {
-        this.payingBillId = null;
-      },
-      complete: () => {
-        this.payingBillId = null;
-      },
+      error: () => { this.payingBillId = null; },
+      complete: () => { this.payingBillId = null; },
     });
   }
 

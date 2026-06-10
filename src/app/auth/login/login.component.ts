@@ -14,24 +14,39 @@ export class LoginComponent {
     private fb: FormBuilder,
     private auth: AuthService,
     private router: Router,
-    private toast: ToastService
+    private toast: ToastService,
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      environment: ['LIVE']
+      environment: ['LIVE'],
     });
   }
 
   submit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading = true;
     this.auth.login(this.form.value).subscribe({
-      next: () => { this.toast.success('Welcome back!'); this.router.navigate(['/dashboard']); },
-      error: () => { this.loading = false; },
-      complete: () => { this.loading = false; }
+      next: () => {
+        this.toast.success('Welcome back!');
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading = false;
+        const message =
+          err?.error?.message || 'Login failed. Please try again.';
+        this.toast.error(message);
+      },
+      complete: () => {
+        this.loading = false;
+      },
     });
   }
 
-  f(name: string) { return this.form.get(name)!; }
+  f(name: string) {
+    return this.form.get(name)!;
+  }
 }

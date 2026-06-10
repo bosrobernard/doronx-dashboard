@@ -10,19 +10,20 @@ import { BadgeComponent } from './components/badge/badge.component';
 import { StatusPipe } from './pipes/status.pipe';
 import { ShortNumberPipe } from './pipes/short-number.pipe';
 import { ToastContainerComponent } from './components/toast-container/toast-container.component';
+import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 
 @NgModule({
   declarations: [
     SidebarComponent, TopbarComponent, StatCardComponent,
     EmptyStateComponent, BadgeComponent,
-    StatusPipe, ShortNumberPipe, ToastContainerComponent
+    StatusPipe, ShortNumberPipe, ToastContainerComponent, ConfirmModalComponent
   ],
   imports: [CommonModule, RouterModule, ReactiveFormsModule, FormsModule],
   exports: [
     CommonModule, RouterModule, ReactiveFormsModule, FormsModule, DatePipe,
     SidebarComponent, TopbarComponent, StatCardComponent,
     EmptyStateComponent, BadgeComponent,
-    StatusPipe, ShortNumberPipe, ToastContainerComponent
+    StatusPipe, ShortNumberPipe, ToastContainerComponent,ConfirmModalComponent
   ],
   providers: [DatePipe]
 })

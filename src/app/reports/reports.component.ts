@@ -4,6 +4,8 @@ import {
   AfterViewInit,
   ElementRef,
   ViewChild,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { ReportsService } from '../core/services/reports.service';
 import { ReportSummary } from '../core/models';
@@ -11,7 +13,11 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
-@Component({ selector: 'app-reports', templateUrl: './reports.component.html' })
+@Component({
+  selector: 'app-reports',
+  templateUrl: './reports.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
 export class ReportsComponent implements OnInit, AfterViewInit {
   @ViewChild('statusChart') statusChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('networkChart') networkChartRef!: ElementRef<HTMLCanvasElement>;
@@ -23,7 +29,10 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   statusChartInst: Chart | null = null;
   networkChartInst: Chart | null = null;
 
-  constructor(private reportsSvc: ReportsService) {}
+  constructor(
+    private reportsSvc: ReportsService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
     // Default: current month
@@ -45,26 +54,30 @@ export class ReportsComponent implements OnInit, AfterViewInit {
       next: (res) => {
         this.summary = res.data;
         this.loading = false;
+        this.cdr.markForCheck(); // ← add this
         setTimeout(() => this.buildCharts(), 120);
       },
       error: () => {
         this.loading = false;
+        this.cdr.markForCheck(); // ← and this
       },
     });
   }
 
   get invoiceStats(): { label: string; value: number }[] {
     if (!this.summary) return [];
-    // Real API: summary.invoices is an array of invoice objects
-    const total = Array.isArray(this.summary.invoices)
-      ? this.summary.invoices.length
-      : 0;
-    const paid = Array.isArray(this.summary.invoices)
-      ? this.summary.invoices.filter((i: any) => i.status === 'PAID').length
-      : 0;
-    const expired = Array.isArray(this.summary.invoices)
-      ? this.summary.invoices.filter((i: any) => i.status === 'EXPIRED').length
-      : 0;
+    const invoices: any[] = Array.isArray(this.summary.invoices)
+      ? this.summary.invoices
+      : [];
+
+    // API returns aggregated: [{ _id: "EXPIRED", count: 1 }, { _id: "PAID", count: 3 }]
+    const getCount = (status: string) =>
+      invoices.find((i) => i._id === status)?.count ?? 0;
+
+    const paid = getCount('PAID');
+    const expired = getCount('EXPIRED');
+    const total = invoices.reduce((sum, i) => sum + (i.count ?? 0), 0);
+
     return [
       { label: 'TOTAL', value: total },
       { label: 'PAID', value: paid },
@@ -82,43 +95,62 @@ export class ReportsComponent implements OnInit, AfterViewInit {
     };
   }
 
-get detectionCount(): number {
-  if (!this.summary?.usage) return 0;
-  // Could be in usage array or legacy detections field
-  return this.summary.detections ??
-    this.summary.usage.reduce((sum, u) => sum + u.count, 0);
-}
-
-get volumeEntries(): { currency: string; amount: number }[] {
-  if (!this.summary?.volume) return [];
-  return Object.entries(this.summary.volume)
-    .map(([currency, amount]) => ({ currency, amount: amount as number }));
-}
-
-get paymentEntries(): { asset: string; amount: number }[] {
-  if (!this.summary?.payments) return [];
-  // Real API: payments is array, may be empty
-  if (!Array.isArray(this.summary.payments)) {
-    return Object.entries(this.summary.payments)
-      .map(([asset, amount]) => ({ asset, amount: amount as number }));
+  get detectionCount(): number {
+    if (!this.summary?.usage) return 0;
+    // Could be in usage array or legacy detections field
+    return (
+      this.summary.detections ??
+      this.summary.usage.reduce((sum, u) => sum + u.count, 0)
+    );
   }
-  return this.summary.payments.map((p: any) => ({
-    asset: p.asset ?? p._id ?? 'UNKNOWN',
-    amount: p.amount ?? p.total ?? 0
-  }));
-}
 
-get webhookStats() {
-  return { sent: this.summary?.webhooks?.sent ?? 0, failed: this.summary?.webhooks?.failed ?? 0 };
-}
+  get volumeEntries(): { currency: string; amount: number }[] {
+    // API has no volume field — derive it from payments
+    if (!this.summary?.payments) return [];
+    if (!Array.isArray(this.summary.payments)) return [];
 
-// Check if summary has any meaningful data
-get hasData(): boolean {
-  if (!this.summary) return false;
-  return (this.summary.invoices?.length > 0) ||
-         (this.summary.payments?.length > 0) ||
-         (this.summary.usage?.length > 0);
-}
+    // Group by asset, sum totalExpectedCrypto
+    const map: Record<string, number> = {};
+    for (const p of this.summary.payments) {
+      const asset = p._id?.asset ?? 'UNKNOWN';
+      map[asset] = (map[asset] ?? 0) + (p.totalExpectedCrypto ?? 0);
+    }
+    return Object.entries(map).map(([currency, amount]) => ({
+      currency,
+      amount,
+    }));
+  }
+
+  get paymentEntries(): { asset: string; amount: number }[] {
+    if (!this.summary?.payments) return [];
+    if (!Array.isArray(this.summary.payments)) return [];
+
+    return this.summary.payments.map((p: any) => {
+      // _id is an object: { status, asset, network }
+      const idObj = p._id && typeof p._id === 'object' ? p._id : {};
+      return {
+        asset: `${idObj.asset ?? 'UNKNOWN'} (${idObj.network ?? ''})`,
+        amount: p.totalExpectedCrypto ?? p.amount ?? 0,
+      };
+    });
+  }
+
+  get webhookStats() {
+    return {
+      sent: this.summary?.webhooks?.sent ?? 0,
+      failed: this.summary?.webhooks?.failed ?? 0,
+    };
+  }
+
+  // Check if summary has any meaningful data
+  get hasData(): boolean {
+    if (!this.summary) return false;
+    return (
+      this.summary.invoices?.length > 0 ||
+      this.summary.payments?.length > 0 || // ← payments is an array of objects
+      this.summary.usage?.length > 0
+    );
+  }
 
   private buildCharts(): void {
     if (!this.summary) return;
@@ -133,17 +165,24 @@ get hasData(): boolean {
       '#38BDF8',
     ];
 
-    // Status doughnut
+    // ── Status doughnut ──────────────────────────────────────────
     if (this.statusChartRef) {
       if (this.statusChartInst) this.statusChartInst.destroy();
-      const stats = Object.entries(this.summary.invoices);
+
+      // Use the same totals your template already uses — don't re-parse invoices
+      const { total, paid, expired } = this.invoiceTotals;
+      const pending = total - paid - expired;
+
+      const labels = ['Paid', 'Expired', 'Pending'];
+      const data = [paid, expired, pending];
+
       this.statusChartInst = new Chart(this.statusChartRef.nativeElement, {
         type: 'doughnut',
         data: {
-          labels: stats.map(([k]) => k.toUpperCase()),
+          labels,
           datasets: [
             {
-              data: stats.map(([, v]) => v as number),
+              data,
               backgroundColor: colors,
               borderWidth: 0,
               hoverOffset: 6,
@@ -162,17 +201,23 @@ get hasData(): boolean {
       });
     }
 
-    // Volume bar
+    // ── Volume bar ───────────────────────────────────────────────
     if (this.networkChartRef) {
       if (this.networkChartInst) this.networkChartInst.destroy();
-      const vols = Object.entries(this.summary.volume ?? {});
+
+      // Use the getter so the shape is already normalised
+      const vols = this.volumeEntries;
+
+      // Nothing to render — skip so Chart.js doesn't error on empty data
+      if (vols.length === 0) return;
+
       this.networkChartInst = new Chart(this.networkChartRef.nativeElement, {
         type: 'bar',
         data: {
-          labels: vols.map(([k]) => k),
+          labels: vols.map((v) => v.currency),
           datasets: [
             {
-              data: vols.map(([, v]) => v as number),
+              data: vols.map((v) => v.amount),
               backgroundColor: '#F7931A',
               borderRadius: 6,
               borderSkipped: false,

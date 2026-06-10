@@ -3,16 +3,20 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { WebhookManagementService } from '../core/services/webhook-management.service';
 import { ToastService } from '../core/services/toast.service';
 import { WebhookEndpoint, WebhookDelivery } from '../core/models';
+import { environment } from '../../environments/environment';
 
 const ALL_EVENTS = [
   'invoice.created',
   'invoice.payment_detected',
   'invoice.paid',
   'invoice.expired',
-  'payment_intent.paid'
+  'payment_intent.paid',
 ];
 
-@Component({ selector: 'app-webhook-management', templateUrl: './webhook-management.component.html' })
+@Component({
+  selector: 'app-webhook-management',
+  templateUrl: './webhook-management.component.html',
+})
 export class WebhookManagementComponent implements OnInit {
   endpoints: WebhookEndpoint[] = [];
   deliveries: WebhookDelivery[] = [];
@@ -48,36 +52,58 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
   constructor(
     private svc: WebhookManagementService,
     private fb: FormBuilder,
-    private toast: ToastService
+    private toast: ToastService,
   ) {
     this.form = this.fb.group({
-      name:       ['', Validators.required],
-      url:        ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
-      eventTypes: [['invoice.paid', 'invoice.payment_detected'], Validators.required]
+      name: ['', Validators.required],
+      url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
+      eventTypes: [
+        ['invoice.paid', 'invoice.payment_detected'],
+        Validators.required,
+      ],
     });
   }
 
-  ngOnInit(): void { this.load(); this.loadDeliveries(); }
+  ngOnInit(): void {
+    this.load();
+    this.loadDeliveries();
+  }
 
   load(): void {
     this.loading = true;
+    console.log(
+      'Fetching:',
+      `${environment.apiUrl}${environment.smartInvoicingPath}/webhooks`,
+    );
     this.svc.list().subscribe({
-      next: res => { this.endpoints = res.data ?? []; this.loading = false; },
-      error: () => { this.loading = false; }
+      next: (res) => {
+        this.endpoints = res.data ?? [];
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
     });
   }
 
   loadDeliveries(): void {
     this.loadingDeliveries = true;
     this.svc.getDeliveries(this.deliveryFilter || undefined).subscribe({
-      next: res => { this.deliveries = res.data ?? []; this.loadingDeliveries = false; },
-      error: () => { this.loadingDeliveries = false; }
+      next: (res) => {
+        this.deliveries = res.data ?? [];
+        this.loadingDeliveries = false;
+      },
+      error: () => {
+        this.loadingDeliveries = false;
+      },
     });
   }
 
   toggleEvent(event: string): void {
     const curr: string[] = this.form.get('eventTypes')?.value ?? [];
-    const next = curr.includes(event) ? curr.filter(e => e !== event) : [...curr, event];
+    const next = curr.includes(event)
+      ? curr.filter((e) => e !== event)
+      : [...curr, event];
     this.form.get('eventTypes')?.setValue(next);
   }
 
@@ -86,19 +112,28 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
   }
 
   save(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving = true;
     this.newSecret = null;
     this.svc.create(this.form.value).subscribe({
-      next: res => {
+      next: (res) => {
         this.toast.success('Webhook endpoint created!');
         if (res.data.secret) this.newSecret = res.data.secret;
         this.showForm = false;
-        this.form.reset({ eventTypes: ['invoice.paid', 'invoice.payment_detected'] });
+        this.form.reset({
+          eventTypes: ['invoice.paid', 'invoice.payment_detected'],
+        });
         this.load();
       },
-      error: () => { this.saving = false; },
-      complete: () => { this.saving = false; }
+      error: () => {
+        this.saving = false;
+      },
+      complete: () => {
+        this.saving = false;
+      },
     });
   }
 
@@ -107,8 +142,14 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
     if (!confirm(`Delete webhook "${ep.name}"?`)) return;
     this.deletingId = id;
     this.svc.delete(id).subscribe({
-      next: () => { this.toast.success('Webhook deleted'); this.load(); this.deletingId = null; },
-      error: () => { this.deletingId = null; }
+      next: () => {
+        this.toast.success('Webhook deleted');
+        this.load();
+        this.deletingId = null;
+      },
+      error: () => {
+        this.deletingId = null;
+      },
     });
   }
 
@@ -119,12 +160,22 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
     }
   }
 
-  dismissSecret(): void { this.newSecret = null; }
+  dismissSecret(): void {
+    this.newSecret = null;
+  }
 
   deliveryBadge(status: string): string {
-    const m: Record<string, string> = { SENT: 'success', PENDING: 'warning', RETRYING: 'info', FAILED: 'error', CANCELLED: 'neutral' };
+    const m: Record<string, string> = {
+      SENT: 'success',
+      PENDING: 'warning',
+      RETRYING: 'info',
+      FAILED: 'error',
+      CANCELLED: 'neutral',
+    };
     return m[status] ?? 'neutral';
   }
 
-  f(n: string) { return this.form.get(n)!; }
+  f(n: string) {
+    return this.form.get(n)!;
+  }
 }
