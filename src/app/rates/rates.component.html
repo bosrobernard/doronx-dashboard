@@ -6,7 +6,8 @@
     </div>
     <button class="btn-primary" (click)="showPairForm = !showPairForm">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       Add Trade Pair
     </button>
@@ -38,10 +39,8 @@
           <div class="form-group">
             <label class="form-label">Allowed networks</label>
             <div class="network-toggle-group">
-              <button type="button" *ngFor="let net of allNetworks"
-                class="network-toggle-btn"
-                [class.selected]="isNetworkSelected(net)"
-                (click)="toggleNetwork(net)">
+              <button type="button" *ngFor="let net of allNetworks" class="network-toggle-btn"
+                [class.selected]="isNetworkSelected(net)" (click)="toggleNetwork(net)">
                 {{ net }}
               </button>
             </div>
@@ -104,10 +103,10 @@
       </div>
 
       <!-- Empty -->
-      <app-empty-state *ngIf="!loading && tradePairs.length === 0"
-        title="No trade pairs configured"
+      <app-empty-state *ngIf="!loading && tradePairs.length === 0" title="No trade pairs configured"
         description="Add a trade pair to define how your invoices are priced.">
-        <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5">
           <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
         </svg>
         <button slot="action" class="btn-primary" (click)="showPairForm = true">Add Trade Pair</button>
@@ -145,9 +144,7 @@
             </div>
           </div>
           <div class="pair-card-footer">
-            <button class="btn-ghost-sm"
-              [class.loading]="refreshingId === p._id"
-              [disabled]="refreshingId === p._id"
+            <button class="btn-ghost-sm" [class.loading]="refreshingId === p._id" [disabled]="refreshingId === p._id"
               (click)="refreshRate(p._id || '')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"></polyline>
@@ -182,28 +179,32 @@
             </select>
           </div>
           <button type="submit" class="btn-primary full" [class.loading]="quoting" [disabled]="quoting">
-            <svg *ngIf="!quoting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg *ngIf="!quoting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
             </svg>
             {{ quoting ? 'Getting quote...' : 'Get live quote' }}
           </button>
         </form>
 
-        <div class="quote-result" *ngIf="quote">
+        <div class="quote-result" *ngIf="quote && quoteDisplay">
           <div class="quote-result-row">
-            <span>Symbol</span><span class="mono">{{ quote.symbol }}</span>
+            <span>Symbol</span><span class="mono">{{ quoteDisplay.symbol }}</span>
           </div>
           <div class="quote-result-row">
-            <span>Rate</span><span class="mono">{{ quote.rate | number:'1.4-4' }}</span>
+            <span>Rate</span>
+            <span class="mono">{{ quoteDisplay.rate | number:'1.4-4' }}</span>
           </div>
           <div class="quote-result-row">
-            <span>Invoice</span><span class="mono">{{ quote.invoiceCurrency }} {{ quote.amount | number:'1.2-2' }}</span>
+            <span>Invoice</span>
+            <span class="mono">{{ quoteDisplay.invoiceCurrency }} {{ quoteDisplay.amount | number:'1.2-2' }}</span>
           </div>
           <div class="quote-result-row highlight">
             <span>Customer pays</span>
-            <span class="mono large orange">{{ quote.cryptoUnits | number:'1.4-6' }} {{ quote.asset }}</span>
+            <span class="mono large orange">{{ quoteDisplay.cryptoUnits | number:'1.4-6' }} {{ quoteDisplay.asset
+              }}</span>
           </div>
-          <div class="quote-source">Source: {{ quote.rateSnapshot?.provider }}</div>
+          <div class="quote-source" *ngIf="quoteDisplay.provider">Source: {{ quoteDisplay.provider }}</div>
         </div>
       </div>
     </div>

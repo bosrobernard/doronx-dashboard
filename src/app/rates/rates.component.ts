@@ -26,41 +26,53 @@ export class RatesComponent implements OnInit {
   constructor(
     private rateService: RateService,
     private fb: FormBuilder,
-    private toast: ToastService
+    private toast: ToastService,
   ) {
     this.pairForm = this.fb.group({
       baseAsset: ['USDT', Validators.required],
       quoteCurrency: ['GHS', Validators.required],
       allowedNetworks: [['TRC20', 'BEP20', 'SOLANA'], Validators.required],
-      markupPercent: [2, [Validators.required, Validators.min(0), Validators.max(50)]],
+      markupPercent: [
+        2,
+        [Validators.required, Validators.min(0), Validators.max(50)],
+      ],
       spreadPercent: [0, [Validators.required, Validators.min(0)]],
       rateSource: ['KRAKEN_FIXER_CROSS', Validators.required],
       pricingMode: ['AUTO', Validators.required],
       minInvoiceAmount: [10, Validators.required],
       maxInvoiceAmount: [100000, Validators.required],
-      rateTtlSeconds: [600, Validators.required]
+      rateTtlSeconds: [600, Validators.required],
     });
 
     this.quoteForm = this.fb.group({
       amount: [1000, [Validators.required, Validators.min(1)]],
       invoiceCurrency: ['GHS', Validators.required],
-      paymentAsset: ['USDT', Validators.required]
+      paymentAsset: ['USDT', Validators.required],
     });
   }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+  }
 
   load(): void {
     this.loading = true;
     this.rateService.listTradePairs().subscribe({
-      next: res => { this.tradePairs = res.data ?? []; this.loading = false; },
-      error: () => { this.loading = false; }
+      next: (res) => {
+        this.tradePairs = res.data ?? [];
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
     });
   }
 
   toggleNetwork(net: string): void {
     const current: string[] = this.pairForm.get('allowedNetworks')?.value ?? [];
-    const updated = current.includes(net) ? current.filter(n => n !== net) : [...current, net];
+    const updated = current.includes(net)
+      ? current.filter((n) => n !== net)
+      : [...current, net];
     this.pairForm.get('allowedNetworks')?.setValue(updated);
   }
 
@@ -69,7 +81,10 @@ export class RatesComponent implements OnInit {
   }
 
   savePair(): void {
-    if (this.pairForm.invalid) { this.pairForm.markAllAsTouched(); return; }
+    if (this.pairForm.invalid) {
+      this.pairForm.markAllAsTouched();
+      return;
+    }
     this.savingPair = true;
     this.rateService.createTradePair(this.pairForm.value).subscribe({
       next: () => {
@@ -77,16 +92,25 @@ export class RatesComponent implements OnInit {
         this.showPairForm = false;
         this.load();
       },
-      error: () => { this.savingPair = false; },
-      complete: () => { this.savingPair = false; }
+      error: () => {
+        this.savingPair = false;
+      },
+      complete: () => {
+        this.savingPair = false;
+      },
     });
   }
 
   refreshRate(id: string): void {
     this.refreshingId = id;
     this.rateService.refreshRate(id).subscribe({
-      next: () => { this.toast.success('Rate refreshed'); this.refreshingId = null; },
-      error: () => { this.refreshingId = null; }
+      next: () => {
+        this.toast.success('Rate refreshed');
+        this.refreshingId = null;
+      },
+      error: () => {
+        this.refreshingId = null;
+      },
     });
   }
 
@@ -95,12 +119,39 @@ export class RatesComponent implements OnInit {
     this.quoting = true;
     this.quote = null;
     const { amount, invoiceCurrency, paymentAsset } = this.quoteForm.value;
-    this.rateService.getQuote(amount, invoiceCurrency, paymentAsset, true).subscribe({
-      next: res => { this.quote = res.data; this.quoting = false; },
-      error: () => { this.quoting = false; }
-    });
+    this.rateService
+      .getQuote(amount, invoiceCurrency, paymentAsset, true)
+      .subscribe({
+        next: (res) => {
+          this.quote = res.data;
+          this.quoting = false;
+        },
+        error: () => {
+          this.quoting = false;
+        },
+      });
   }
 
-  pf(n: string) { return this.pairForm.get(n)!; }
-  qf(n: string) { return this.quoteForm.get(n)!; }
+  get quoteDisplay() {
+    if (!this.quote) return null;
+    return {
+      symbol:
+        this.quote.symbol ??
+        `${this.quoteForm.value.paymentAsset}/${this.quoteForm.value.invoiceCurrency}`,
+      rate: this.quote.rate,
+      invoiceCurrency:
+        this.quote.profileCurrency ?? this.quoteForm.value.invoiceCurrency,
+      amount: this.quote.amount ?? this.quoteForm.value.amount,
+      cryptoUnits: this.quote.cryptoUnits,
+      asset: this.quote.asset,
+      provider: this.quote.rateSnapshot?.provider,
+    };
+  }
+
+  pf(n: string) {
+    return this.pairForm.get(n)!;
+  }
+  qf(n: string) {
+    return this.quoteForm.get(n)!;
+  }
 }

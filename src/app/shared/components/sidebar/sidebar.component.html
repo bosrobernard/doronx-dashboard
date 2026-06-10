@@ -1,44 +1,48 @@
 <aside class="sidebar" [class.collapsed]="collapsed" [class.mobile-open]="mobileOpen">
   <div class="sidebar-header">
-    <!-- <div class="sidebar-logo">
-      <div class="logo-icon">D</div>
-      <span class="logo-text" *ngIf="!collapsed">DoronX</span>
-    </div> -->
-    <div class="auth-logo">
-      <!-- <div class="auth-logo-mark">D</div>
-      <span class="auth-logo-text">DoronX</span> -->
+    <div class="sidebar-logo-full" *ngIf="!collapsed">
       <img src="/assets/images/dorx-full.png" width="100" />
     </div>
-    <button class="collapse-btn" (click)="toggle()">
+    <div class="sidebar-logo-icon" *ngIf="collapsed">
+      <img src="/assets/images/dorx.png" width="32" />
+    </div>
+
+    <!-- Hide collapse button on mobile (mobile uses hamburger instead) -->
+    <button class="collapse-btn desktop-only" (click)="toggle()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline *ngIf="!collapsed" points="15 18 9 12 15 6"></polyline>
-        <polyline *ngIf="collapsed"  points="9 18 15 12 9 6"></polyline>
+        <polyline *ngIf="collapsed" points="9 18 15 12 9 6"></polyline>
       </svg>
     </button>
   </div>
 
   <nav class="sidebar-nav">
-    <a *ngFor="let item of navItems"
-       [routerLink]="item.route" routerLinkActive="active"
-       class="nav-item" [class.collapsed]="collapsed"
-       (click)="closeMobile()" [title]="collapsed ? item.label : ''">
+    <a *ngFor="let item of navItems" [routerLink]="item.route" routerLinkActive="active" class="nav-item"
+      [class.collapsed]="collapsed" (click)="closeMobile()" [title]="collapsed ? item.label : ''">
       <span class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <ng-container [ngSwitch]="item.icon">
             <ng-container *ngSwitchCase="'grid'">
-              <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
             </ng-container>
             <ng-container *ngSwitchCase="'file-text'">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </ng-container>
             <ng-container *ngSwitchCase="'qr-code'">
-              <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
-              <line x1="14" y1="14" x2="14" y2="14"></line><line x1="21" y1="14" x2="21" y2="14"></line>
-              <line x1="14" y1="21" x2="21" y2="21"></line><line x1="21" y1="17" x2="21" y2="21"></line>
+              <line x1="14" y1="14" x2="14" y2="14"></line>
+              <line x1="21" y1="14" x2="21" y2="14"></line>
+              <line x1="14" y1="21" x2="21" y2="21"></line>
+              <line x1="21" y1="17" x2="21" y2="21"></line>
               <line x1="14" y1="17" x2="17" y2="17"></line>
             </ng-container>
             <ng-container *ngSwitchCase="'credit-card'">
@@ -96,3 +100,49 @@
   </div>
 </aside>
 <div class="sidebar-overlay" *ngIf="mobileOpen" (click)="closeMobile()"></div>
+
+
+
+<style>
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    min-height: 60px;
+    gap: 0.5rem;
+  }
+
+  /* When collapsed: stack logo above chevron, centered */
+  .sidebar.collapsed .sidebar-header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .collapse-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-muted, #888);
+  }
+
+  .collapse-btn:hover {
+    background: var(--surface-hover, rgba(0, 0, 0, 0.06));
+  }
+
+  /* Hide on mobile — hamburger handles this */
+  @media (max-width: 768px) {
+    .desktop-only {
+      display: none !important;
+    }
+  }
+</style>

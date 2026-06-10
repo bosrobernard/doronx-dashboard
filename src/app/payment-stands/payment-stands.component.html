@@ -6,7 +6,8 @@
     </div>
     <button class="btn-primary" (click)="showForm = !showForm">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       Create Stand
     </button>
@@ -15,9 +16,11 @@
   <div class="info-banner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
     </svg>
-    <span>Payment stands generate a reusable QR code. A customer scans it, enters an amount (or sees a fixed amount), and a normal invoice is created. Funds go directly to your connected wallet.</span>
+    <span>Payment stands generate a reusable QR code. A customer scans it, enters an amount (or sees a fixed amount),
+      and a normal invoice is created. Funds go directly to your connected wallet.</span>
   </div>
 
   <!-- CREATE FORM -->
@@ -33,7 +36,8 @@
         <div class="form-group">
           <label class="form-label">Stand code <span class="form-hint">(auto-generated, uppercase)</span></label>
           <input class="form-input mono" formControlName="standCode" placeholder="TABLE-12">
-          <div class="form-error" *ngIf="f('standCode').touched && f('standCode').errors?.['pattern']">Uppercase letters, numbers, hyphens only</div>
+          <div class="form-error" *ngIf="f('standCode').touched && f('standCode').errors?.['pattern']">Uppercase
+            letters, numbers, hyphens only</div>
         </div>
       </div>
 
@@ -108,11 +112,11 @@
   </div>
 
   <!-- EMPTY -->
-  <app-empty-state *ngIf="!loading && stands.length === 0"
-    title="No payment stands yet"
+  <app-empty-state *ngIf="!loading && stands.length === 0" title="No payment stands yet"
     description="Create a stand to generate a reusable QR code for your shop, table, or counter.">
     <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
       <rect x="3" y="14" width="7" height="7"></rect>
     </svg>
     <button slot="action" class="btn-primary" (click)="showForm = true">Create Stand</button>
@@ -138,19 +142,19 @@
 
       <div class="stand-actions">
         <button class="btn-ghost-sm" (click)="viewStand(stand)">
-          {{ selectedStand?.standCode === stand.standCode ? 'Hide details' : 'View details' }}
+          {{ (selectedStand?.standId ?? selectedStand?._id) === (stand.standId ?? stand._id) ? 'Hide details' : 'View
+          details' }}
         </button>
         <a *ngIf="stand.publicUrl" [href]="stand.publicUrl" target="_blank" class="btn-ghost-sm">Open →</a>
         <button *ngIf="stand.printUrl" class="btn-ghost-sm" (click)="openPrint(stand.printUrl!)">Print QR</button>
         <button class="btn-ghost-sm danger" (click)="disable(stand)"
-          [disabled]="disablingId === (stand.standId ?? stand._id)"
-          *ngIf="stand.isActive !== false">
+          [disabled]="disablingId === (stand.standId ?? stand._id)" *ngIf="stand.isActive !== false">
           {{ disablingId === (stand.standId ?? stand._id) ? '...' : 'Disable' }}
         </button>
       </div>
 
       <!-- Expanded detail -->
-      <div class="stand-detail" *ngIf="selectedStand?.standCode === stand.standCode">
+      <div class="stand-detail" *ngIf="(selectedStand?.standId ?? selectedStand?._id) === (stand.standId ?? stand._id)">
         <div class="stand-detail-row" *ngIf="stand.publicUrl">
           <span class="sdl">Public URL</span>
           <div class="copy-row">

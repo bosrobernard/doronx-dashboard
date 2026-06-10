@@ -41,3 +41,5 @@ export class SidebarComponent implements OnInit {
 
   get envBadge(): string { return this.auth?.environment ?? ''; }
 }
+
+

@@ -1,14 +1,35 @@
 // ─── Enums ───────────────────────────────────────────────────────────────────
 export type EEnvironment = 'TEST' | 'LIVE';
 export type EPaymentIntentStatus =
-  | 'CREATED' | 'AWAITING_PAYMENT' | 'PAYMENT_DETECTED'
-  | 'CONFIRMING' | 'PAID' | 'UNDERPAID' | 'OVERPAID'
-  | 'EXPIRED' | 'FAILED' | 'CANCELLED';
+  | 'CREATED'
+  | 'AWAITING_PAYMENT'
+  | 'PAYMENT_DETECTED'
+  | 'CONFIRMING'
+  | 'PAID'
+  | 'UNDERPAID'
+  | 'OVERPAID'
+  | 'EXPIRED'
+  | 'FAILED'
+  | 'CANCELLED';
 export type EInvoiceStatus = EPaymentIntentStatus;
-export type EWalletMode = 'EXTERNAL_WALLET' | 'XPUB' | 'CLIENT_SIDE_GENERATED' | 'ADDRESS_POOL';
-export type EWebhookDeliveryStatus = 'PENDING' | 'RETRYING' | 'SENT' | 'FAILED' | 'CANCELLED';
+export type EWalletMode =
+  | 'EXTERNAL_WALLET'
+  | 'XPUB'
+  | 'CLIENT_SIDE_GENERATED'
+  | 'ADDRESS_POOL';
+export type EWebhookDeliveryStatus =
+  | 'PENDING'
+  | 'RETRYING'
+  | 'SENT'
+  | 'FAILED'
+  | 'CANCELLED';
 export type EPaymentStandMode = 'OPEN_AMOUNT' | 'FIXED_AMOUNT';
-export type ESaaSPlanCode = 'FREE' | 'STARTER' | 'BUSINESS' | 'GROWTH' | 'ENTERPRISE';
+export type ESaaSPlanCode =
+  | 'FREE'
+  | 'STARTER'
+  | 'BUSINESS'
+  | 'GROWTH'
+  | 'ENTERPRISE';
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface RegisterPayload {
@@ -42,7 +63,8 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   data: {
-    token: string;
+    smartInvoicingToken: string; // ← was "token"
+    token?: string;
     apiKey?: string;
     tenantId: string;
     businessId?: string;
@@ -83,7 +105,11 @@ export interface WorkspaceSetup {
 }
 
 export interface WorkspaceConfig {
-  workspace: { name: string; environment: EEnvironment; defaultCurrency: string };
+  workspace: {
+    name: string;
+    environment: EEnvironment;
+    defaultCurrency: string;
+  };
   payment: {
     enabledInvoiceCurrencies: string[];
     enabledPaymentAssets: string[];
@@ -159,7 +185,12 @@ export interface RateQuote {
   asset?: string;
   profileCurrency?: string;
   cryptoUnits?: number;
-  rateSnapshot?: { merchantTradePairId: string; merchantTradeRateId: string; source: string; provider: string };
+  rateSnapshot?: {
+    merchantTradePairId: string;
+    merchantTradeRateId: string;
+    source: string;
+    provider: string;
+  };
 }
 
 // ─── Amount Fingerprint ──────────────────────────────────────────────────────
@@ -325,7 +356,10 @@ export interface BillingSubscription {
   environment: EEnvironment;
   status: string;
   startDate?: string;
+  currentPeriodEnd?: string; // ← API uses this, not nextBillingDate
   nextBillingDate?: string;
+  currency?: string;
+  monthlyFee?: number;
 }
 
 export interface BillingUsage {
@@ -348,12 +382,19 @@ export interface BillingBill {
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
+export interface ReportUsageItem {
+  _id: string; // event type e.g. "PAYMENT_STAND_CREATED"
+  count: number;
+  billableTotal: number;
+}
+
 export interface ReportSummary {
-  invoices: { total: number; paid: number; expired: number };
+  invoices: any[];
+  payments: any[];
   volume: Record<string, number>;
-  payments: Record<string, number>;
   detections: number;
   webhooks: { sent: number; failed: number };
+  usage: ReportUsageItem[];
 }
 
 // ─── Generic API wrappers ─────────────────────────────────────────────────────
@@ -367,6 +408,49 @@ export interface PaginatedResponse<T> {
   success: boolean;
   message?: string;
   data: T[];
-  meta?: { page: number; limit: number; total: number; pages: number; hasMore: boolean };
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasMore: boolean;
+  };
   total?: number;
+}
+
+export interface SetupStepAction {
+  label: string;
+  route: string;
+}
+
+export interface SetupStep {
+  key: string;
+  title: string;
+  description?: string;
+  status?: string;
+  completed?: boolean;
+  blocking?: boolean;
+  action?: SetupStepAction;
+  // legacy compat
+  route?: string;
+}
+
+export interface WorkspaceSetup {
+  status: 'COMPLETE' | 'INCOMPLETE';
+  environment: EEnvironment;
+  progress: number;
+  completedSteps: number;
+  totalSteps: number;
+  canCreateInvoice: boolean;
+  canGoLive: boolean;
+  nextStep?: SetupStep;
+  steps: SetupStep[]; // ← full ordered list
+  missingRequired: SetupStep[];
+  recommended: SetupStep[];
+  notices?: {
+    testMode?: string | null;
+    liveMode?: string | null;
+    nonCustodial?: string | null;
+  };
+  summary?: Record<string, boolean>;
 }

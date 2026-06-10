@@ -20,24 +20,24 @@
   <ng-container *ngIf="!loading && summary">
     <!-- Invoice stats -->
     <div class="stats-grid">
-      <app-stat-card label="Total invoices" [value]="summary.invoices.total.toString()" accent="orange">
+      <app-stat-card label="Total invoices" [value]="invoiceTotals.total.toString()" accent="orange">
         <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
         </svg>
       </app-stat-card>
-      <app-stat-card label="Paid invoices" [value]="summary.invoices.paid.toString()" accent="green">
+      <app-stat-card label="Paid invoices" [value]="invoiceTotals.paid.toString()" accent="green">
         <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </app-stat-card>
-      <app-stat-card label="Expired" [value]="summary.invoices.expired.toString()" accent="purple">
+      <app-stat-card label="Expired" [value]="invoiceTotals.expired.toString()" accent="purple">
         <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
       </app-stat-card>
-      <app-stat-card label="Blockchain detections" [value]="summary.detections.toString()" accent="blue">
+      <app-stat-card label="Blockchain detections" [value]="detectionCount.toString()" accent="blue">
         <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
@@ -59,9 +59,10 @@
     <!-- Volume breakdown -->
     <div class="section-card">
       <h3 class="section-card-title">Revenue Volume</h3>
-      <app-empty-state *ngIf="volumeEntries.length === 0"
-        title="No revenue data" description="Revenue will appear here once invoices are paid.">
-        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <app-empty-state *ngIf="volumeEntries.length === 0" title="No revenue data"
+        description="Revenue will appear here once invoices are paid.">
+        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5">
           <line x1="12" y1="1" x2="12" y2="23"></line>
           <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
         </svg>
@@ -77,9 +78,10 @@
     <!-- Crypto payments received -->
     <div class="section-card">
       <h3 class="section-card-title">Crypto Payments Received</h3>
-      <app-empty-state *ngIf="paymentEntries.length === 0"
-        title="No payment data" description="Crypto payment totals appear here.">
-        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <app-empty-state *ngIf="paymentEntries.length === 0" title="No payment data"
+        description="Crypto payment totals appear here.">
+        <svg slot="icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5">
           <circle cx="12" cy="12" r="10"></circle>
         </svg>
       </app-empty-state>
@@ -97,12 +99,12 @@
       <div class="detail-grid">
         <div class="detail-item">
           <span class="detail-label">Sent</span>
-          <span class="detail-value mono large" style="color:var(--green)">{{ summary.webhooks.sent }}</span>
+          <span class="detail-value mono large" style="color:var(--green)">{{ webhookStats.sent }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Failed</span>
-          <span class="detail-value mono large" [style.color]="summary.webhooks.failed > 0 ? 'var(--red)' : 'var(--gray)'">
-            {{ summary.webhooks.failed }}
+          <span class="detail-value mono large" [style.color]="webhookStats.failed > 0 ? 'var(--red)' : 'var(--gray)'">
+            {{ webhookStats.failed }}
           </span>
         </div>
       </div>
@@ -110,10 +112,11 @@
   </ng-container>
 
   <!-- Empty when no data after load -->
-  <app-empty-state *ngIf="!loading && !summary"
-    title="No report data" description="Adjust the date range and try again.">
+  <app-empty-state *ngIf="!loading && !hasData" title="No report data yet"
+    description="Data will appear here once you start creating invoices and receiving payments.">
     <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line>
+      <line x1="18" y1="20" x2="18" y2="10"></line>
+      <line x1="12" y1="20" x2="12" y2="4"></line>
       <line x1="6" y1="20" x2="6" y2="14"></line>
     </svg>
   </app-empty-state>

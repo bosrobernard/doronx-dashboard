@@ -3,7 +3,12 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BillingService } from '../core/services/billing.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastService } from '../core/services/toast.service';
-import { BillingPlan, BillingSubscription, BillingUsage, BillingBill } from '../core/models';
+import {
+  BillingPlan,
+  BillingSubscription,
+  BillingUsage,
+  BillingBill,
+} from '../core/models';
 
 @Component({ selector: 'app-billing', templateUrl: './billing.component.html' })
 export class BillingComponent implements OnInit {
@@ -23,15 +28,17 @@ export class BillingComponent implements OnInit {
     public auth: AuthService,
     private billingSvc: BillingService,
     private toast: ToastService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
   ) {
     this.payForm = this.fb.group({
-      asset:   ['USDT', Validators.required],
-      network: ['TRC20', Validators.required]
+      asset: ['USDT', Validators.required],
+      network: ['TRC20', Validators.required],
     });
   }
 
-  ngOnInit(): void { this.loadAll(); }
+  ngOnInit(): void {
+    this.loadAll();
+  }
 
   loadAll(): void {
     this.loading = true;
@@ -39,33 +46,80 @@ export class BillingComponent implements OnInit {
       this.billingSvc.getPlans().toPromise(),
       this.billingSvc.getSubscription().toPromise(),
       this.billingSvc.getUsage().toPromise(),
-      this.billingSvc.getBills().toPromise()
-    ]).then(([plans, sub, usage, bills]) => {
-      this.plans        = (plans as any)?.data ?? [];
-      this.subscription = (sub as any)?.data ?? null;
-      this.usage        = (usage as any)?.data ?? null;
-      this.bills        = (bills as any)?.data ?? [];
-      this.loading      = false;
-    }).catch(() => { this.loading = false; });
+      this.billingSvc.getBills().toPromise(),
+    ])
+      .then(([plans, sub, usage, bills]) => {
+        this.plans = (plans as any)?.data ?? [];
+
+        // Subscription is nested under data.subscription
+        const subData = (sub as any)?.data;
+        this.subscription = subData?.subscription ?? subData ?? null;
+
+        // Usage is under data.items[], map to BillingUsage shape
+        const usageData = (usage as any)?.data;
+        if (usageData?.items) {
+          const detections = usageData.items.find((i: any) =>
+            i.eventType?.includes('DETECTION'),
+          );
+          const invoices = usageData.items.find((i: any) =>
+            i.eventType?.includes('INVOICE'),
+          );
+          const webhooks = usageData.items.find((i: any) =>
+            i.eventType?.includes('WEBHOOK'),
+          );
+          this.usage = {
+            detections: detections?.quantity ?? 0,
+            invoicesCreated: invoices?.quantity ?? 0,
+            webhooksSent: webhooks?.quantity ?? 0,
+            period: usageData.period
+              ? `${new Date(usageData.period.from).toLocaleDateString()} – ${new Date(usageData.period.to).toLocaleDateString()}`
+              : 'Current period',
+          };
+        } else {
+          this.usage = usageData ?? null;
+        }
+
+        this.bills = (bills as any)?.data ?? [];
+        this.loading = false;
+      })
+      .catch(() => {
+        this.loading = false;
+      });
   }
 
   changePlan(planCode: string): void {
     if (planCode === this.subscription?.planCode) return;
     if (!confirm(`Switch to the ${planCode} plan?`)) return;
     this.changingPlan = true;
-    this.billingSvc.changePlan(planCode, 'Merchant-initiated plan change').subscribe({
-      next: () => { this.toast.success('Plan changed!'); this.loadAll(); },
-      error: () => { this.changingPlan = false; },
-      complete: () => { this.changingPlan = false; }
-    });
+    this.billingSvc
+      .changePlan(planCode, 'Merchant-initiated plan change')
+      .subscribe({
+        next: () => {
+          this.toast.success('Plan changed!');
+          this.loadAll();
+        },
+        error: () => {
+          this.changingPlan = false;
+        },
+        complete: () => {
+          this.changingPlan = false;
+        },
+      });
   }
 
   generateBill(): void {
     this.generatingBill = true;
     this.billingSvc.generateCurrentBill().subscribe({
-      next: res => { this.toast.success(`Bill ${res.data.billNumber} generated`); this.loadAll(); },
-      error: () => { this.generatingBill = false; },
-      complete: () => { this.generatingBill = false; }
+      next: (res) => {
+        this.toast.success(`Bill ${res.data.billNumber} generated`);
+        this.loadAll();
+      },
+      error: () => {
+        this.generatingBill = false;
+      },
+      complete: () => {
+        this.generatingBill = false;
+      },
     });
   }
 
@@ -79,14 +133,22 @@ export class BillingComponent implements OnInit {
     this.payingBillId = billId;
     const { asset, network } = this.payForm.value;
     this.billingSvc.payBillCrypto(billId, asset, network).subscribe({
-      next: res => {
-        this.toast.success('Payment intent created — send crypto to the address shown');
+      next: (res) => {
+        this.toast.success(
+          'Payment intent created — send crypto to the address shown',
+        );
         this.showPayForm = null;
-        alert(`Send ${res.data.payment.expectedCryptoAmount} ${asset} to:\n${res.data.payment.receivingAddress}`);
+        alert(
+          `Send ${res.data.payment.expectedCryptoAmount} ${asset} to:\n${res.data.payment.receivingAddress}`,
+        );
         this.loadAll();
       },
-      error: () => { this.payingBillId = null; },
-      complete: () => { this.payingBillId = null; }
+      error: () => {
+        this.payingBillId = null;
+      },
+      complete: () => {
+        this.payingBillId = null;
+      },
     });
   }
 
@@ -96,6 +158,9 @@ export class BillingComponent implements OnInit {
 
   copyApiKey(): void {
     const key = this.auth.auth?.apiKey;
-    if (key) { navigator.clipboard.writeText(key); this.toast.success('API key copied!'); }
+    if (key) {
+      navigator.clipboard.writeText(key);
+      this.toast.success('API key copied!');
+    }
   }
 }

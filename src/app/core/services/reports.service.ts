@@ -17,3 +17,5 @@ export class ReportsService {
     return this.http.get<ApiResponse<ReportSummary>>(`${BASE}/reports/summary`, { params });
   }
 }
+
+

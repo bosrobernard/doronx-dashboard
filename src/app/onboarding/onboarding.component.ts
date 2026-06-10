@@ -3,47 +3,64 @@ import { Router } from '@angular/router';
 import { WorkspaceService } from '../core/services/workspace.service';
 import { WorkspaceSetup, SetupStep } from '../core/models';
 
-@Component({ selector: 'app-onboarding', templateUrl: './onboarding.component.html' })
+@Component({
+  selector: 'app-onboarding',
+  templateUrl: './onboarding.component.html',
+})
 export class OnboardingComponent implements OnInit {
   setup: WorkspaceSetup | null = null;
   loading = true;
 
-  routeMap: Record<string, string> = {
-    wallet:          '/wallets',
-    default_wallet:  '/wallets',
-    trade_pair:      '/rates',
-    webhook:         '/webhooks',
-    plan:            '/billing',
-  };
-
-  constructor(private workspaceService: WorkspaceService, private router: Router) {}
+  constructor(
+    private workspaceService: WorkspaceService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.workspaceService.getSetup().subscribe({
-      next: res => { this.setup = res.data; this.loading = false; },
-      error: () => { this.loading = false; }
+      next: (res) => {
+        this.setup = res.data;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
     });
   }
 
+  // Use the route from the API action, fall back to known local routes
   navigate(step: SetupStep): void {
-    const route = step.action?.route ?? this.routeMap[step.key] ?? '/dashboard';
-    this.router.navigate([route]);
+    const apiRoute = step.action?.route ?? '';
+    const localRoute =
+      apiRoute.replace('/smart-invoicing', '') || this.fallback(step.key);
+
+    // Wallet steps should land with form open
+    const walletKeys = ['wallet_profile', 'default_wallet', 'wallet_ownership'];
+    if (walletKeys.includes(step.key)) {
+      this.router.navigate(['/wallets'], { queryParams: { add: 'true' } });
+    } else {
+      this.router.navigate([localRoute]);
+    }
+  }
+
+  private fallback(key: string): string {
+    const map: Record<string, string> = {
+      wallet_profile: '/wallets',
+      default_wallet: '/wallets',
+      wallet_ownership: '/wallets',
+      trade_pairs: '/rates',
+      billing_plan: '/billing',
+      api_key: '/billing',
+      webhook: '/webhooks',
+      branding: '/dashboard',
+    };
+    return map[key] ?? '/dashboard';
   }
 
   get progressColor(): string {
     const p = this.setup?.progress ?? 0;
     if (p >= 100) return 'var(--green)';
-    if (p >= 60)  return 'var(--orange)';
+    if (p >= 60) return 'var(--orange)';
     return 'var(--red)';
-  }
-
-  get steps(): { key: string; label: string; done: boolean; route: string }[] {
-    return [
-      { key: 'wallet',         label: 'Connect a wallet',       done: !this.setup?.missingRequired.find(m => m.key === 'wallet'),         route: '/wallets' },
-      { key: 'default_wallet', label: 'Set default wallet',     done: !this.setup?.missingRequired.find(m => m.key === 'default_wallet'),  route: '/wallets' },
-      { key: 'trade_pair',     label: 'Enable a trade pair',    done: !this.setup?.missingRequired.find(m => m.key === 'trade_pair'),      route: '/rates' },
-      { key: 'webhook',        label: 'Configure a webhook',    done: !this.setup?.missingRequired.find(m => m.key === 'webhook'),         route: '/webhooks' },
-      { key: 'plan',           label: 'Choose a plan for LIVE', done: !this.setup?.missingRequired.find(m => m.key === 'plan'),           route: '/billing' },
-    ];
   }
 }

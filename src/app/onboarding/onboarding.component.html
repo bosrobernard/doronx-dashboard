@@ -12,7 +12,8 @@
   </div>
 
   <ng-container *ngIf="!loading && setup">
-    <!-- Progress bar -->
+
+    <!-- Progress card -->
     <div class="onboarding-progress-card">
       <div class="op-header">
         <div class="op-title">
@@ -24,6 +25,7 @@
       <div class="progress-track">
         <div class="progress-fill" [style.width.%]="setup.progress" [style.background]="progressColor"></div>
       </div>
+      <div class="op-meta">{{ setup.completedSteps }} of {{ setup.totalSteps }} steps completed</div>
       <div class="op-flags">
         <span class="flag" [class.ok]="setup.canCreateInvoice">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -44,48 +46,118 @@
       </div>
     </div>
 
+    <!-- Notices -->
+    <div class="notice-banner info" *ngIf="setup.notices?.liveMode && setup.environment === 'LIVE'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      {{ setup.notices!.liveMode }}
+    </div>
+    <div class="notice-banner neutral" *ngIf="setup.notices?.nonCustodial">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      {{ setup.notices!.nonCustodial }}
+    </div>
+
     <!-- Next step banner -->
     <div class="next-step-banner" *ngIf="setup.nextStep">
-      <div class="ns-label">Next step</div>
-      <div class="ns-title">{{ setup.nextStep.title }}</div>
+      <div class="ns-content">
+        <div class="ns-label">Next step</div>
+        <div class="ns-title">{{ setup.nextStep.title }}</div>
+        <div class="ns-desc" *ngIf="setup.nextStep.description">{{ setup.nextStep.description }}</div>
+      </div>
       <button class="btn-primary" (click)="navigate(setup.nextStep!)">
         {{ setup.nextStep.action?.label || 'Complete' }} →
       </button>
     </div>
 
-    <!-- Checklist -->
+    <!-- Full checklist from API steps[] -->
     <div class="section-card">
       <h3 class="section-card-title">Setup Checklist</h3>
       <div class="checklist">
-        <div class="checklist-item" *ngFor="let step of steps" [class.done]="step.done">
-          <div class="ci-check">
+        <div class="checklist-item" *ngFor="let step of setup.steps" [class.done]="step.completed">
+          <div class="ci-check" [class.ci-done]="step.completed" [class.ci-pending]="!step.completed">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline *ngIf="step.done" points="20 6 9 17 4 12"></polyline>
-              <circle *ngIf="!step.done" cx="12" cy="12" r="6" stroke-width="2"></circle>
+              <polyline *ngIf="step.completed" points="20 6 9 17 4 12"></polyline>
+              <circle *ngIf="!step.completed" cx="12" cy="12" r="6" stroke-width="2"></circle>
             </svg>
           </div>
-          <div class="ci-label">{{ step.label }}</div>
-          <a [routerLink]="step.route" class="ci-action" *ngIf="!step.done">
-            Complete →
-          </a>
-          <span class="ci-done-label" *ngIf="step.done">Done</span>
+          <div class="ci-body">
+            <div class="ci-label">{{ step.title }}</div>
+            <div class="ci-desc" *ngIf="step.description">{{ step.description }}</div>
+          </div>
+          <span class="ci-badge" *ngIf="step.status === 'REQUIRED'" style="color: var(--red); font-size: 0.7rem; font-weight: 600;">REQUIRED</span>
+          <button class="ci-action" *ngIf="!step.completed && step.action" (click)="navigate(step)">
+            {{ step.action!.label }} →
+          </button>
+          <span class="ci-done-label" *ngIf="step.completed">Done</span>
         </div>
       </div>
     </div>
 
-    <!-- Missing required -->
-    <div class="section-card" *ngIf="setup.missingRequired.length > 0">
-      <h3 class="section-card-title">Required before creating invoices</h3>
-      <div class="missing-list">
-        <div class="missing-item" *ngFor="let m of setup.missingRequired">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          {{ m.title }}
+    <!-- Recommended (non-blocking) -->
+    <div class="section-card" *ngIf="setup.recommended.length > 0">
+      <h3 class="section-card-title">Recommended</h3>
+      <div class="checklist">
+        <div class="checklist-item" *ngFor="let step of setup.recommended">
+          <div class="ci-check ci-pending">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="6"></circle>
+            </svg>
+          </div>
+          <div class="ci-body">
+            <div class="ci-label">{{ step.title }}</div>
+          </div>
+          <button class="ci-action" *ngIf="step.action" (click)="navigate(step)">
+            {{ step.action!.label }} →
+          </button>
         </div>
       </div>
     </div>
+
   </ng-container>
 </div>
+
+
+
+<style>
+  /* Notice banners */
+.notice-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.notice-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notice-banner.info {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.notice-banner.info svg {
+  stroke: #60a5fa;
+}
+
+.notice-banner.neutral {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted, #9ca3af);
+}
+
+.notice-banner.neutral svg {
+  stroke: var(--text-muted, #9ca3af);
+}
+</style>
