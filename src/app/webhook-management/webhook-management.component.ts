@@ -80,24 +80,32 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
         this.endpoints = res.data ?? [];
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
+        // Backend returns 404 when no endpoints exist yet for this workspace.
+        // Treat that as an empty list instead of a real error.
+        if (err?.status === 404) {
+          this.endpoints = [];
+        } else {
+          this.toast.error('Failed to load webhook endpoints');
+        }
         this.loading = false;
       },
     });
   }
 
-  loadDeliveries(): void {
-    this.loadingDeliveries = true;
-    this.svc.getDeliveries(this.deliveryFilter || undefined).subscribe({
-      next: (res) => {
-        this.deliveries = res.data ?? [];
-        this.loadingDeliveries = false;
-      },
-      error: () => {
-        this.loadingDeliveries = false;
-      },
-    });
-  }
+ loadDeliveries(): void {
+  this.loadingDeliveries = true;
+  this.svc.getDeliveries(this.deliveryFilter || undefined).subscribe({
+    next: (res:any) => {
+      this.deliveries = res.data?.items ?? [];
+      this.loadingDeliveries = false;
+    },
+    error: () => {
+      this.deliveries = [];
+      this.loadingDeliveries = false;
+    },
+  });
+}
 
   toggleEvent(event: string): void {
     const curr: string[] = this.form.get('eventTypes')?.value ?? [];
