@@ -18,10 +18,21 @@ export class RatesComponent implements OnInit {
   refreshingId: string | null = null;
 
   currencies = ['GHS', 'USD', 'NGN', 'CAD', 'EUR'];
-  assets = ['USDT', 'BTC', 'ETH'];
+assets = ['USDT', 'BTC' /*, 'ETH'*/];
   allNetworks = ['TRC20', 'BEP20', 'SOLANA', 'POLYGON', 'BTC'];
   rateSources = ['KRAKEN_FIXER_CROSS'];
   pricingModes = ['AUTO', 'MANUAL'];
+
+
+
+// Networks per asset
+private assetNetworkMap: Record<string, string[]> = {
+  USDT: ['TRC20', 'BEP20', 'SOLANA', 'POLYGON'],
+  BTC:  ['BTC'],
+  // ETH: ['BEP20', 'POLYGON'],
+};
+
+
 
   constructor(
     private rateService: RateService,
@@ -80,6 +91,22 @@ export class RatesComponent implements OnInit {
     return (this.pairForm.get('allowedNetworks')?.value ?? []).includes(net);
   }
 
+
+
+// Derived list shown in the form — reacts to the selected baseAsset
+get availableNetworks(): string[] {
+  const asset = this.pairForm.get('baseAsset')?.value;
+  return this.assetNetworkMap[asset] ?? [];
+}
+
+// Call this whenever baseAsset changes so stale networks are cleared
+onBaseAssetChange(): void {
+  const validNets = this.assetNetworkMap[this.pairForm.get('baseAsset')?.value] ?? [];
+  const current: string[] = this.pairForm.get('allowedNetworks')?.value ?? [];
+  // Keep only networks that are still valid for the new asset
+  this.pairForm.get('allowedNetworks')?.setValue(current.filter(n => validNets.includes(n)));
+}
+
   savePair(): void {
     if (this.pairForm.invalid) {
       this.pairForm.markAllAsTouched();
@@ -101,18 +128,19 @@ export class RatesComponent implements OnInit {
     });
   }
 
-  refreshRate(id: string): void {
-    this.refreshingId = id;
-    this.rateService.refreshRate(id).subscribe({
-      next: () => {
-        this.toast.success('Rate refreshed');
-        this.refreshingId = null;
-      },
-      error: () => {
-        this.refreshingId = null;
-      },
-    });
-  }
+// Fixed: pass baseAsset + quoteCurrency instead of id
+refreshRate(p: TradePair): void {
+  this.refreshingId = p._id ?? null;
+  this.rateService.refreshRate(p.baseAsset, p.quoteCurrency).subscribe({
+    next: () => {
+      this.toast.success('Rate refreshed');
+      this.refreshingId = null;
+    },
+    error: () => {
+      this.refreshingId = null;
+    },
+  });
+}
 
   getQuote(): void {
     if (this.quoteForm.invalid) return;
@@ -155,3 +183,5 @@ export class RatesComponent implements OnInit {
     return this.quoteForm.get(n)!;
   }
 }
+
+

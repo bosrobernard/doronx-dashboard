@@ -9,10 +9,12 @@ export class InvoiceDetailComponent implements OnInit {
   invoice: Invoice | null = null;
   paymentIntent: PaymentIntent | null = null;
   paymentUrl = '';
+  qrCodeUrl = '';
   detection: any = null;
   timeline: any[] = [];
   loading = true;
   registeringDetection = false;
+  downloadingQr = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -24,10 +26,24 @@ export class InvoiceDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.invoiceService.getById(id).subscribe({
       next: res => {
-        const d = res.data;
+        const d: any = res.data;
         this.invoice = d.invoice;
         this.paymentIntent = d.paymentIntent;
-        this.paymentUrl = d.paymentUrl ?? '';
+
+        // paymentUrl can come from a few different places depending on payload shape
+        this.paymentUrl =
+          d.invoice?.paymentUrl ??
+          d.payment?.paymentUrl ??
+          d.paymentUrl ??
+          '';
+
+        // QR code url similarly nested
+        this.qrCodeUrl =
+          d.payment?.qrCodeUrl ??
+          d.invoice?.paymentQr?.qrCodeUrl ??
+          d.paymentIntent?.paymentQr?.qrCodeUrl ??
+          '';
+
         this.detection = d.detection ?? null;
         this.timeline = d.timeline ?? [];
         this.loading = false;
@@ -79,5 +95,62 @@ export class InvoiceDetailComponent implements OnInit {
 
   get fingerprint(): number {
     return this.paymentIntent?.amountFingerprint?.fingerprint ?? 0;
+  }
+
+  get expectedCryptoAmount(): number {
+    return this.paymentIntent?.amountFingerprint?.finalExpectedAmount
+      ?? this.paymentIntent?.expectedCryptoAmount ?? 0;
+  }
+
+  get expectedCryptoAsset(): string {
+    return this.paymentIntent?.expectedCryptoAsset ?? '';
+  }
+
+  get expectedCryptoNetwork(): string {
+    return this.paymentIntent?.expectedCryptoNetwork ?? '';
+  }
+
+  // Download the QR code image (fetch as blob to bypass <a download> CORS quirks
+  // with presigned S3/Contabo URLs)
+  async downloadQr(): Promise<void> {
+    if (!this.qrCodeUrl) return;
+    this.downloadingQr = true;
+    try {
+      const response = await fetch(this.qrCodeUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payment-qr-${this.invoice?.invoiceNumber || 'invoice'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open in new tab so the user can save manually
+      window.open(this.qrCodeUrl, '_blank');
+      this.toast.error('Could not auto-download — opened in a new tab instead');
+    } finally {
+      this.downloadingQr = false;
+    }
+  }
+
+  // Share the payment link (Web Share API where available, copy as fallback)
+  async sharePaymentLink(): Promise<void> {
+    if (!this.paymentUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Invoice ${this.invoice?.invoiceNumber ?? ''}`,
+          text: `Pay ${this.invoice?.currency} ${this.invoice?.amount} — ${this.invoice?.description ?? ''}`,
+          url: this.paymentUrl
+        });
+      } catch {
+        // user cancelled share — no-op
+      }
+    } else {
+      this.copy(this.paymentUrl);
+      this.toast.success('Link copied — share it however you like');
+    }
   }
 }

@@ -36,9 +36,10 @@ export class PaymentStandsComponent implements OnInit {
       tableNumber: [''],
       instructions: [''],
       mode: ['OPEN_AMOUNT', Validators.required],
+      fixedAmount: [null],
       currency: ['GHS', Validators.required],
       allowedAssets: [['USDT'], Validators.required],
-      allowedNetworks: ['TRC20', Validators.required],
+      allowedNetworks: [['TRC20'], Validators.required],
       defaultAsset: ['USDT', Validators.required],
       defaultNetwork: ['TRC20', Validators.required],
     });
@@ -50,6 +51,34 @@ export class PaymentStandsComponent implements OnInit {
         .replace(/\s+/g, '-')
         .replace(/[^A-Z0-9-]/g, '');
       this.form.get('standCode')?.setValue(code, { emitEvent: false });
+    });
+
+    // Whenever the default network changes, make sure it's part of allowedNetworks
+    this.form.get('defaultNetwork')?.valueChanges.subscribe((network) => {
+      const curr: string[] = this.form.get('allowedNetworks')?.value ?? [];
+      if (network && !curr.includes(network)) {
+        this.form.get('allowedNetworks')?.setValue([...curr, network]);
+      }
+    });
+
+    // Whenever the default asset changes, make sure it's part of allowedAssets
+    this.form.get('defaultAsset')?.valueChanges.subscribe((asset) => {
+      const curr: string[] = this.form.get('allowedAssets')?.value ?? [];
+      if (asset && !curr.includes(asset)) {
+        this.form.get('allowedAssets')?.setValue([...curr, asset]);
+      }
+    });
+
+    // Toggle fixedAmount validator based on mode
+    this.form.get('mode')?.valueChanges.subscribe((mode) => {
+      const fixedAmountCtrl = this.form.get('fixedAmount');
+      if (mode === 'FIXED_AMOUNT') {
+        fixedAmountCtrl?.setValidators([Validators.required, Validators.min(1)]);
+      } else {
+        fixedAmountCtrl?.clearValidators();
+        fixedAmountCtrl?.setValue(null);
+      }
+      fixedAmountCtrl?.updateValueAndValidity();
     });
   }
 
@@ -75,11 +104,33 @@ export class PaymentStandsComponent implements OnInit {
     const next = curr.includes(asset)
       ? curr.filter((a) => a !== asset)
       : [...curr, asset];
+
+    // Don't allow removing the currently-selected default asset
+    if (asset === this.form.get('defaultAsset')?.value && curr.includes(asset)) {
+      return;
+    }
     this.form.get('allowedAssets')?.setValue(next);
   }
 
   isAssetSelected(asset: string): boolean {
     return (this.form.get('allowedAssets')?.value ?? []).includes(asset);
+  }
+
+  toggleNetwork(network: string): void {
+    const curr: string[] = this.form.get('allowedNetworks')?.value ?? [];
+    const next = curr.includes(network)
+      ? curr.filter((n) => n !== network)
+      : [...curr, network];
+
+    // Don't allow removing the currently-selected default network
+    if (network === this.form.get('defaultNetwork')?.value && curr.includes(network)) {
+      return;
+    }
+    this.form.get('allowedNetworks')?.setValue(next);
+  }
+
+  isNetworkSelected(network: string): boolean {
+    return (this.form.get('allowedNetworks')?.value ?? []).includes(network);
   }
 
   save(): void {
@@ -88,15 +139,17 @@ export class PaymentStandsComponent implements OnInit {
       return;
     }
     this.saving = true;
-    const payload = {
-      ...this.form.value,
-      allowedNetworks: Array.isArray(this.form.get('allowedNetworks')?.value)
-        ? this.form.get('allowedNetworks')?.value
-        : [this.form.get('allowedNetworks')?.value],
-    };
+
+    const formValue = this.form.value;
+    const payload: any = { ...formValue };
+
+    // Don't send fixedAmount at all when mode is OPEN_AMOUNT
+    if (payload.mode !== 'FIXED_AMOUNT') {
+      delete payload.fixedAmount;
+    }
+
     this.standService.create(payload).subscribe({
       next: (res) => {
-        // API returns data.standName directly (flat, not nested)
         this.toast.success(
           `Payment stand "${res.data?.standName ?? 'Stand'}" created!`,
         );
@@ -107,7 +160,8 @@ export class PaymentStandsComponent implements OnInit {
           defaultAsset: 'USDT',
           defaultNetwork: 'TRC20',
           allowedAssets: ['USDT'],
-          allowedNetworks: 'TRC20',
+          allowedNetworks: ['TRC20'],
+          fixedAmount: null,
         });
         this.load();
       },

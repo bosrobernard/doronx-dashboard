@@ -18,9 +18,9 @@ export class RateService {
     return this.http.post<ApiResponse<TradePair>>(`${BASE}/rates/trade-pairs`, payload);
   }
 
-  refreshRate(tradePairId: string): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${BASE}/rates/refresh`, { tradePairId });
-  }
+ refreshRate(baseAsset: string, quoteCurrency: string): Observable<ApiResponse<any>> {
+  return this.http.post<ApiResponse<any>>(`${BASE}/rates/refresh`, { baseAsset, quoteCurrency });
+}
 
   getQuote(amount: number, invoiceCurrency: string, paymentAsset: string, forceRefresh = true): Observable<ApiResponse<RateQuote>> {
     return this.http.post<ApiResponse<RateQuote>>(`${BASE}/rates/quote`, {
@@ -28,3 +28,5 @@ export class RateService {
     });
   }
 }
+
+

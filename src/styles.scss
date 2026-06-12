@@ -1119,6 +1119,26 @@ code {
   border: 1px solid var(--border);
 }
 
+
+
+/* NEW: distinct colors for expired/failed/cancelled */
+.badge-expired {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.badge-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.badge-cancelled {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  text-decoration: line-through;
+}
+
 /* FILTER */
 .filter-bar {
   display: flex;

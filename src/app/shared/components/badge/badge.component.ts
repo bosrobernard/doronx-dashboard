@@ -8,3 +8,5 @@ export class BadgeComponent {
   @Input() label = '';
   @Input() type = 'neutral';
 }
+
+

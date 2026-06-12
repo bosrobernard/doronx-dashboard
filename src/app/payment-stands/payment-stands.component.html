@@ -73,11 +73,33 @@
         </div>
       </div>
 
+      <!-- NEW: Fixed amount input, shown only in FIXED_AMOUNT mode -->
+      <div class="form-group" *ngIf="f('mode').value === 'FIXED_AMOUNT'">
+        <label class="form-label">Fixed amount ({{ f('currency').value }})</label>
+        <input class="form-input" type="number" formControlName="fixedAmount" placeholder="e.g. 50" min="1">
+        <div class="form-error" *ngIf="f('fixedAmount').touched && f('fixedAmount').errors?.['required']">Required for
+          fixed amount mode</div>
+        <div class="form-error" *ngIf="f('fixedAmount').touched && f('fixedAmount').errors?.['min']">Must be at least 1
+        </div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Allowed assets</label>
         <div class="network-toggle-group">
           <button type="button" *ngFor="let a of assets" class="network-toggle-btn"
             [class.selected]="isAssetSelected(a)" (click)="toggleAsset(a)">{{ a }}</button>
+        </div>
+      </div>
+
+      <!-- NEW: Allowed networks toggle group -->
+      <div class="form-group">
+        <label class="form-label">Allowed networks</label>
+        <div class="network-toggle-group">
+          <button type="button" *ngFor="let n of networks" class="network-toggle-btn"
+            [class.selected]="isNetworkSelected(n)" (click)="toggleNetwork(n)">{{ n }}</button>
+        </div>
+        <div class="form-error" *ngIf="f('allowedNetworks').touched && (f('allowedNetworks').value?.length ?? 0) === 0">
+          Select at least one network
         </div>
       </div>
 

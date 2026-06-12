@@ -13,6 +13,16 @@
     </button>
   </div>
 
+  <div class="info-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span><strong>Rate engine:</strong> Trade pairs define how invoice amounts are converted to crypto. Rates are
+      fetched live from your configured source and cached for the TTL duration.</span>
+  </div>
+
   <div class="rates-layout">
     <!-- Left: Trade Pairs -->
     <div class="rates-main">
@@ -24,9 +34,10 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Base asset</label>
-              <select class="form-input form-select" formControlName="baseAsset">
+              <select class="form-input form-select" formControlName="baseAsset" (change)="onBaseAssetChange()">
                 <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
               </select>
+
             </div>
             <div class="form-group">
               <label class="form-label">Quote currency</label>
@@ -39,7 +50,7 @@
           <div class="form-group">
             <label class="form-label">Allowed networks</label>
             <div class="network-toggle-group">
-              <button type="button" *ngFor="let net of allNetworks" class="network-toggle-btn"
+              <button type="button" *ngFor="let net of availableNetworks" class="network-toggle-btn"
                 [class.selected]="isNetworkSelected(net)" (click)="toggleNetwork(net)">
                 {{ net }}
               </button>
@@ -145,7 +156,7 @@
           </div>
           <div class="pair-card-footer">
             <button class="btn-ghost-sm" [class.loading]="refreshingId === p._id" [disabled]="refreshingId === p._id"
-              (click)="refreshRate(p._id || '')">
+              (click)="refreshRate(p)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"></polyline>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -178,7 +189,8 @@
               <option *ngFor="let a of assets" [value]="a">{{ a }}</option>
             </select>
           </div>
-          <button type="submit" class="btn-primary full" style="margin-top: 10px;" [class.loading]="quoting" [disabled]="quoting">
+          <button type="submit" class="btn-primary full" style="margin-top: 10px;" [class.loading]="quoting"
+            [disabled]="quoting">
             <svg *ngIf="!quoting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>

@@ -55,6 +55,22 @@
       <div class="detail-card" *ngIf="paymentIntent">
         <h4 class="detail-card-title">Payment Intent</h4>
 
+        <!-- Always-visible expected crypto amount -->
+        <div class="detail-grid" style="margin-bottom:14px">
+          <div class="detail-item highlight">
+            <span class="detail-label">Expected crypto amount</span>
+            <span class="detail-value mono large orange">
+              {{ expectedCryptoAmount | number:'1.6-6' }} {{ expectedCryptoAsset }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Network</span>
+            <span class="detail-value">
+              <app-badge [label]="expectedCryptoNetwork" type="neutral"></app-badge>
+            </span>
+          </div>
+        </div>
+
         <!-- Amount fingerprint section -->
         <div class="fingerprint-card" *ngIf="fingerprintEnabled">
           <div class="fp-card-head">
@@ -67,7 +83,8 @@
           <div class="fp-grid">
             <div class="fp-item">
               <span class="fp-lbl">Quoted amount</span>
-              <span class="fp-val mono">{{ paymentIntent.quotedCryptoAmount | number:'1.4-6' }} {{ paymentIntent.expectedCryptoAsset }}</span>
+              <span class="fp-val mono">{{ paymentIntent.quotedCryptoAmount | number:'1.4-6' }} {{
+                paymentIntent.expectedCryptoAsset }}</span>
             </div>
             <div class="fp-item">
               <span class="fp-lbl">Fingerprint suffix</span>
@@ -75,13 +92,15 @@
             </div>
             <div class="fp-item highlight">
               <span class="fp-lbl">Customer must send EXACTLY</span>
-              <span class="fp-val mono large orange">{{ finalAmount | number:'1.6-6' }} {{ paymentIntent.expectedCryptoAsset }}</span>
+              <span class="fp-val mono large orange">{{ finalAmount | number:'1.6-6' }} {{
+                paymentIntent.expectedCryptoAsset }}</span>
             </div>
           </div>
           <div class="fp-warning">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
             Rounded or different amounts may not be automatically matched. Customer must send the exact amount.
           </div>
@@ -89,12 +108,9 @@
 
         <div class="detail-grid" style="margin-top:14px">
           <div class="detail-item">
-            <span class="detail-label">Network</span>
-            <span class="detail-value"><app-badge [label]="paymentIntent.expectedCryptoNetwork || ''" type="neutral"></app-badge></span>
-          </div>
-          <div class="detail-item">
             <span class="detail-label">Matching strategy</span>
-            <span class="detail-value small-text">{{ paymentIntent.depositMatchingStrategy || 'SHARED_ADDRESS_UNIQUE_AMOUNT' }}</span>
+            <span class="detail-value small-text">{{ paymentIntent.depositMatchingStrategy ||
+              'SHARED_ADDRESS_UNIQUE_AMOUNT' }}</span>
           </div>
           <div class="detail-item full">
             <span class="detail-label">Receiving address</span>
@@ -121,10 +137,8 @@
       <div class="detail-card">
         <div class="detail-card-head">
           <h4 class="detail-card-title">Gateway Detection</h4>
-          <button class="btn-ghost-sm"
-            *ngIf="!detection || detection.status !== 'ACTIVE'"
-            [disabled]="registeringDetection"
-            (click)="registerDetection()">
+          <button class="btn-ghost-sm" *ngIf="!detection || detection.status !== 'ACTIVE'"
+            [disabled]="registeringDetection" (click)="registerDetection()">
             {{ registeringDetection ? 'Registering...' : 'Register for detection' }}
           </button>
         </div>
@@ -132,7 +146,8 @@
           <div class="detail-item">
             <span class="detail-label">Detection status</span>
             <span class="detail-value">
-              <app-badge [label]="detection.status" [type]="detection.status === 'ACTIVE' ? 'success' : 'neutral'"></app-badge>
+              <app-badge [label]="detection.status"
+                [type]="detection.status === 'ACTIVE' ? 'success' : 'neutral'"></app-badge>
             </span>
           </div>
           <div class="detail-item" *ngIf="detection.gatewayIntentCode">
@@ -161,20 +176,53 @@
     <div class="detail-side">
       <div class="detail-card">
         <h4 class="detail-card-title">Payment Link</h4>
-        <div class="pay-url-box">
+
+        <div class="pay-url-box" *ngIf="paymentUrl">
           <a [href]="paymentUrl" target="_blank" class="pay-url">{{ paymentUrl }}</a>
         </div>
+        <div class="muted small-text" *ngIf="!paymentUrl">
+          Payment link unavailable for this invoice.
+        </div>
+
+        <!-- QR Code -->
+        <div class="qr-box" *ngIf="qrCodeUrl" style="text-align:center;margin:14px 0">
+          <img [src]="qrCodeUrl" alt="Payment QR code"
+            style="max-width:200px;width:100%;border-radius:8px;border:1px solid var(--border)" />
+        </div>
+
         <div class="detail-actions">
-          <button class="btn-primary full" (click)="copy(paymentUrl)">
+          <button class="btn-primary full" (click)="copy(paymentUrl)" [disabled]="!paymentUrl">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
             Copy payment link
           </button>
-          <a [href]="paymentUrl" target="_blank" class="btn-outline-sm full">Open payment page →</a>
+
+          <a [href]="paymentUrl" target="_blank" class="btn-outline-sm full" *ngIf="paymentUrl">Open payment page →</a>
+
+          <button class="btn-outline-sm full" (click)="downloadQr()" [disabled]="!qrCodeUrl || downloadingQr">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            {{ downloadingQr ? 'Downloading...' : 'Download QR code' }}
+          </button>
+
+          <button class="btn-outline-sm full" (click)="sharePaymentLink()" [disabled]="!paymentUrl">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Share payment link
+          </button>
         </div>
       </div>
+
 
       <!-- Status flow -->
       <div class="status-timeline-card">
@@ -186,7 +234,8 @@
           <div class="tl-item" [class.done]="invoice.status !== 'AWAITING_PAYMENT' && invoice.status !== 'CREATED'">
             <div class="tl-dot"></div><span>Payment detected (0 conf)</span>
           </div>
-          <div class="tl-item" [class.done]="invoice.status === 'PAID' || invoice.status === 'UNDERPAID' || invoice.status === 'OVERPAID'">
+          <div class="tl-item"
+            [class.done]="invoice.status === 'PAID' || invoice.status === 'UNDERPAID' || invoice.status === 'OVERPAID'">
             <div class="tl-dot"></div><span>Confirmed on-chain</span>
           </div>
           <div class="tl-item" [class.done]="invoice.status === 'PAID'">

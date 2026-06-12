@@ -6,7 +6,8 @@
     </div>
     <a routerLink="/invoices/create" class="btn-primary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       New Invoice
     </a>
@@ -30,23 +31,24 @@
   <!-- Stats -->
   <div class="stats-grid">
     <app-stat-card label="Total invoices (month)" [value]="totalInvoices.toString()" accent="orange">
-      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
       </svg>
     </app-stat-card>
     <app-stat-card label="Paid invoices" [value]="paidInvoices.toString()" accent="green">
-      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
     </app-stat-card>
     <app-stat-card label="Blockchain detections" [value]="detections.toString()" accent="blue">
-      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
     </app-stat-card>
     <app-stat-card label="Webhooks sent" [value]="webhooksSent.toString()" accent="purple">
-      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg slot="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
       </svg>
     </app-stat-card>
@@ -57,7 +59,8 @@
     <a routerLink="/invoices/create" class="qa-card">
       <div class="qa-icon qa-orange">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </div>
       <div class="qa-label">Create Invoice</div>
@@ -65,7 +68,8 @@
     <a routerLink="/payment-stands" class="qa-card">
       <div class="qa-icon qa-green">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
           <rect x="3" y="14" width="7" height="7"></rect>
         </svg>
       </div>
@@ -102,8 +106,7 @@
       <div class="skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
     </div>
 
-    <app-empty-state *ngIf="!loading && invoices.length === 0"
-      title="No invoices yet"
+    <app-empty-state *ngIf="!loading && invoices.length === 0" title="No invoices yet"
       description="Create your first invoice to start accepting crypto payments.">
       <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -129,7 +132,8 @@
           <td class="mono small-text">{{ inv.invoiceNumber }}</td>
           <td>{{ inv.payerName || inv.payer?.name || '—' }}</td>
           <td class="mono">{{ inv.currency }} {{ inv.amount | number:'1.2-2' }}</td>
-          <td class="mono">{{ (inv.expectedCryptoAmount || 0) | number:'1.4-6' }} {{ inv.asset || inv.expectedCryptoAsset }}</td>
+          <td class="mono">{{ (inv.expectedCryptoAmount || 0) | number:'1.4-6' }} {{ inv.asset ||
+            inv.expectedCryptoAsset }}</td>
           <td><app-badge [label]="inv.network || inv.expectedCryptoNetwork || '—'" type="neutral"></app-badge></td>
           <td><app-badge [label]="inv.status" [type]="statusBadge(inv.status)"></app-badge></td>
           <td><a [routerLink]="['/invoices', getId(inv)]" class="table-action">View</a></td>
@@ -138,5 +142,3 @@
     </table>
   </div>
 </div>
-
-

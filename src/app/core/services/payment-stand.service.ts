@@ -30,3 +30,5 @@ export class PaymentStandService {
     return this.http.patch<ApiResponse<any>>(`${BASE}/payment-stands/${id}/disable`, {});
   }
 }
+
+
