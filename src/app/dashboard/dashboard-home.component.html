@@ -132,9 +132,8 @@
           <td class="mono small-text">{{ inv.invoiceNumber }}</td>
           <td>{{ inv.payerName || inv.payer?.name || '—' }}</td>
           <td class="mono">{{ inv.currency }} {{ inv.amount | number:'1.2-2' }}</td>
-          <td class="mono">{{ (inv.expectedCryptoAmount || 0) | number:'1.4-6' }} {{ inv.asset ||
-            inv.expectedCryptoAsset }}</td>
-          <td><app-badge [label]="inv.network || inv.expectedCryptoNetwork || '—'" type="neutral"></app-badge></td>
+          <td class="mono">{{ getExpectedCrypto(inv) | number:'1.4-6' }} {{ getExpectedAsset(inv) }}</td>
+          <td><app-badge [label]="getExpectedNetwork(inv) || '—'" type="neutral"></app-badge></td>
           <td><app-badge [label]="inv.status" [type]="statusBadge(inv.status)"></app-badge></td>
           <td><a [routerLink]="['/invoices', getId(inv)]" class="table-action">View</a></td>
         </tr>

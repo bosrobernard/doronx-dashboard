@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, switchMap, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, AuthState, LoginPayload, RegisterPayload } from '../models';
@@ -19,17 +19,30 @@ export class AuthService {
   get token(): string { return this.auth?.token ?? ''; }
   get isLoggedIn(): boolean { return !!this.token; }
 
-  register(payload: RegisterPayload): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${BASE}/auth/register`, payload).pipe(
-      tap(res => { if (res.success) this.persist(res); })
-    );
-  }
+ register(payload: RegisterPayload): Observable<AuthResponse> {
+  return this.http.post<AuthResponse>(`${BASE}/auth/register`, payload).pipe(
+    switchMap(res => {
+      if (!res.success) {
+        return throwError(() => ({ error: { message: res.message } }));
+      }
+      this.persist(res);
+      return [res];
+    })
+  );
+}
 
-  login(payload: LoginPayload): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${BASE}/auth/login`, payload).pipe(
-      tap(res => { if (res.success) this.persist(res); })
-    );
-  }
+ login(payload: LoginPayload): Observable<AuthResponse> {
+  return this.http.post<AuthResponse>(`${BASE}/auth/login`, payload).pipe(
+    switchMap(res => {
+      if (!res.success) {
+        // Simulate an error so the `error:` handler in the component fires
+        return throwError(() => ({ error: { message: res.message } }));
+      }
+      this.persist(res);
+      return [res];
+    })
+  );
+}
 
   logout(): void {
     localStorage.removeItem(AUTH_KEY);
@@ -58,3 +71,5 @@ export class AuthService {
     catch { return null; }
   }
 }
+
+

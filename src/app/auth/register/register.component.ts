@@ -88,3 +88,5 @@ export class RegisterComponent {
     return this.form.get(name)!;
   }
 }
+
+

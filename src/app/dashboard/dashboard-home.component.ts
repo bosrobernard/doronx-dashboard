@@ -116,6 +116,22 @@ export class DashboardHomeComponent implements OnInit {
     );
   }
 
+  getExpectedCrypto(inv: any): number {
+    return (
+      inv.payment?.amountFingerprint?.finalExpectedAmount ??
+      inv.payment?.expectedCryptoAmount ??
+      0
+    );
+  }
+
+  getExpectedAsset(inv: any): string {
+    return inv.payment?.expectedCryptoAsset ?? '';
+  }
+
+  getExpectedNetwork(inv: any): string {
+    return inv.payment?.expectedCryptoNetwork ?? '';
+  }
+
   statusBadge(status: string): string {
     const map: Record<string, string> = {
       PAID: 'success',

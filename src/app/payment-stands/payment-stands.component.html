@@ -25,7 +25,7 @@
 
   <!-- CREATE FORM -->
   <div class="form-card" *ngIf="showForm">
-    <h4 class="form-card-title">New Payment Stand</h4>
+    <h4 class="form-card-title">{{ editStandId ? 'Edit Payment Stand' : 'New Payment Stand' }}</h4>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div class="form-row">
         <div class="form-group">
@@ -73,13 +73,32 @@
         </div>
       </div>
 
-      <!-- NEW: Fixed amount input, shown only in FIXED_AMOUNT mode -->
       <div class="form-group" *ngIf="f('mode').value === 'FIXED_AMOUNT'">
-        <label class="form-label">Fixed amount ({{ f('currency').value }})</label>
-        <input class="form-input" type="number" formControlName="fixedAmount" placeholder="e.g. 50" min="1">
+        <label class="form-label">
+          {{ inputMode === 'LOCAL' ? 'Fixed Amount (' + f('currency').value + ')' : 'Fixed Amount (' +
+          (f('defaultAsset').value || 'USDT') + ')' }}
+        </label>
+        <div class="amount-wrap">
+          <input class="form-input" type="number" formControlName="fixedAmount" placeholder="e.g. 50" min="0"
+            step="any">
+          <button type="button" class="toggle-mode-btn" (click)="toggleInputMode()" [disabled]="isConverting"
+            title="Toggle between {{ f('currency').value }} and {{ f('defaultAsset').value || 'USDT' }}">
+            ⇄
+          </button>
+          <span class="amount-suffix">{{ amountSuffix }}</span>
+        </div>
+
+        <div class="conversion-row" *ngIf="isConverting">
+          <span class="spinner-sm"></span>
+          <span class="conversion-text">Calculating...</span>
+        </div>
+        <div class="conversion-row" *ngIf="!isConverting && conversionHint">
+          <span class="conversion-text">{{ conversionHint }}</span>
+        </div>
+
         <div class="form-error" *ngIf="f('fixedAmount').touched && f('fixedAmount').errors?.['required']">Required for
           fixed amount mode</div>
-        <div class="form-error" *ngIf="f('fixedAmount').touched && f('fixedAmount').errors?.['min']">Must be at least 1
+        <div class="form-error" *ngIf="f('fixedAmount').touched && f('fixedAmount').errors?.['min']">Must be at least 0
         </div>
       </div>
 
@@ -112,16 +131,21 @@
         </div>
         <div class="form-group">
           <label class="form-label">Default network</label>
-          <select class="form-input form-select" formControlName="defaultNetwork">
-            <option *ngFor="let n of networks" [value]="n">{{ n }}</option>
+          <select class="form-input form-select" formControlName="defaultNetwork" [disabled]="isNetworkLocked()">
+            <option *ngFor="let n of availableNetworks" [value]="n">{{ n }}</option>
           </select>
+          <div class="form-hint" *ngIf="isNetworkLocked()">
+            BTC asset only supports the BTC network
+          </div>
         </div>
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn-ghost-sm" (click)="showForm = false">Cancel</button>
-        <button type="submit" class="btn-primary" [class.loading]="saving" [disabled]="saving">
-          <span *ngIf="!saving">Create Payment Stand</span>
+        <button type="button" class="btn-ghost-sm" (click)="cancelEdit()">Cancel</button>
+        <button type="submit" class="btn-primary" [class.loading]="saving"
+          [disabled]="saving || isConverting || (f('mode').value === 'FIXED_AMOUNT' && inputMode === 'LOCAL' && !conversionResult && !!f('fixedAmount').value)">
+          <span *ngIf="!saving && !isConverting">{{ editStandId ? 'Update Stand' : 'Create Payment Stand' }}</span>
+          <span *ngIf="isConverting && !saving">Calculating rate...</span>
           <span *ngIf="saving" class="spinner"></span>
         </button>
       </div>
@@ -145,6 +169,7 @@
   </app-empty-state>
 
   <!-- STANDS GRID -->
+  <!-- STANDS GRID -->
   <div class="stands-grid" *ngIf="!loading && stands.length > 0">
     <div class="stand-card" *ngFor="let stand of stands">
       <div class="stand-card-head">
@@ -163,10 +188,15 @@
       </div>
 
       <div class="stand-actions">
-        <button class="btn-ghost-sm" (click)="viewStand(stand)">
-          {{ (selectedStand?.standId ?? selectedStand?._id) === (stand.standId ?? stand._id) ? 'Hide details' : 'View
-          details' }}
+        <button class="btn-ghost-sm" (click)="viewStand(stand)"
+          [disabled]="loadingDetailId === (stand.standId ?? stand._id)">
+          <span *ngIf="loadingDetailId === (stand.standId ?? stand._id)">Loading...</span>
+          <span *ngIf="loadingDetailId !== (stand.standId ?? stand._id)">
+            {{ (selectedStand?.standId ?? selectedStand?._id) === (stand.standId ?? stand._id) ? 'Hide details' : 'View
+            details' }}
+          </span>
         </button>
+        <button class="btn-ghost-sm" (click)="editStand(stand)">Edit</button>
         <a *ngIf="stand.publicUrl" [href]="stand.publicUrl" target="_blank" class="btn-ghost-sm">Open →</a>
         <button *ngIf="stand.printUrl" class="btn-ghost-sm" (click)="openPrint(stand.printUrl!)">Print QR</button>
         <button class="btn-ghost-sm danger" (click)="disable(stand)"
@@ -176,34 +206,170 @@
       </div>
 
       <!-- Expanded detail -->
+      <!-- Expanded detail -->
       <div class="stand-detail" *ngIf="(selectedStand?.standId ?? selectedStand?._id) === (stand.standId ?? stand._id)">
-        <div class="stand-detail-row" *ngIf="stand.publicUrl">
-          <span class="sdl">Public URL</span>
-          <div class="copy-row">
-            <code class="sdr">{{ stand.publicUrl }}</code>
-            <button class="copy-btn" (click)="copyUrl(stand.publicUrl!)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
+
+        <div class="stand-detail-body">
+          <div class="stand-detail-left">
+
+            <div class="stand-detail-row" *ngIf="selectedStand?.publicUrl">
+              <span class="sdl">Public URL</span>
+              <div class="copy-row">
+                <code class="sdr">{{ selectedStand?.publicUrl }}</code>
+                <button class="copy-btn" (click)="copyUrl(selectedStand!.publicUrl!)" title="Copy URL">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="stand-detail-row" *ngIf="selectedStand?.instructions">
+              <span class="sdl">Instructions</span>
+              <span class="sdr">{{ selectedStand?.instructions }}</span>
+            </div>
+
+            <div class="stand-detail-row">
+              <span class="sdl">Allowed assets</span>
+              <div class="sdr flex-row">
+                <app-badge *ngFor="let a of selectedStand?.allowedAssets" [label]="a" type="neutral"></app-badge>
+              </div>
+            </div>
+
+            <div class="stand-detail-row" *ngIf="selectedStand?.printUrl">
+              <span class="sdl">Print</span>
+              <button class="btn-ghost-sm" (click)="openPrint(selectedStand!.printUrl!)">
+                🖨 Print QR sheet
+              </button>
+            </div>
+
+          </div>
+
+          <!-- QR Code panel -->
+          <div class="stand-qr-panel" *ngIf="selectedStand?.qrCode">
+            <a [href]="selectedStand?.publicUrl || '#'" target="_blank" title="Open payment page" class="stand-qr-link">
+              <img [src]="selectedStand?.qrCode" alt="QR Code" class="qr-img" />
+              <span class="qr-hint">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                Open payment page
+              </span>
+            </a>
           </div>
         </div>
-        <div class="stand-detail-row" *ngIf="stand.instructions">
-          <span class="sdl">Instructions</span>
-          <span class="sdr">{{ stand.instructions }}</span>
-        </div>
-        <div class="stand-detail-row">
-          <span class="sdl">Allowed assets</span>
-          <div class="sdr flex-row">
-            <app-badge *ngFor="let a of stand.allowedAssets" [label]="a" type="neutral"></app-badge>
-          </div>
-        </div>
-        <!-- QR Code preview -->
-        <div class="qr-preview" *ngIf="stand.qrCode">
-          <img [src]="stand.qrCode" alt="QR Code" class="qr-img">
-        </div>
+
       </div>
     </div>
   </div>
 </div>
+
+
+<style>
+  .amount-wrap {
+    position: relative;
+  }
+
+  .toggle-mode-btn {
+    position: absolute;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: transparent;
+    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+  }
+
+  .amount-suffix {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.6;
+  }
+
+  .conversion-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  .spinner-sm {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(0, 0, 0, 0.15);
+    border-top-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .stand-detail {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .stand-detail-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .stand-detail-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stand-qr-panel {
+    flex-shrink: 0;
+  }
+
+  .stand-qr-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    border-radius: 10px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .stand-qr-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .qr-img {
+    width: 110px;
+    height: 110px;
+    border-radius: 6px;
+    display: block;
+  }
+
+  .qr-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    opacity: 0.5;
+    color: inherit;
+  }
+
+  .stand-qr-link:hover .qr-hint {
+    opacity: 0.8;
+  }
+</style>

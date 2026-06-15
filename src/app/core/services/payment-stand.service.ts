@@ -6,6 +6,7 @@ import { ApiResponse, CreatePaymentStandPayload, PaginatedResponse, PaymentStand
 
 const BASE = environment.apiUrl + environment.smartInvoicingPath;
 
+
 @Injectable({ providedIn: 'root' })
 export class PaymentStandService {
   constructor(private http: HttpClient) {}
@@ -30,5 +31,7 @@ export class PaymentStandService {
     return this.http.patch<ApiResponse<any>>(`${BASE}/payment-stands/${id}/disable`, {});
   }
 }
+
+
 
 

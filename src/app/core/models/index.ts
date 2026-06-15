@@ -294,6 +294,7 @@ export interface PaymentStand {
   printUrl?: string;
   qrCode?: string;
   isActive?: boolean;
+  fixedAmount?: string
 }
 
 export interface CreatePaymentStandPayload {

@@ -1011,8 +1011,9 @@ code {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: auto;
   margin-bottom: 20px;
+
 }
 .data-table {
   width: 100%;

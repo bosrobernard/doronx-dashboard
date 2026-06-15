@@ -107,13 +107,13 @@
         </span>
         <span class="wallet-meta-item">{{ w.walletMode || 'EXTERNAL_WALLET' }}</span>
       </div>
-      <div class="wallet-card-actions" *ngIf="!w.isDefault">
+      <!-- <div class="wallet-card-actions" *ngIf="!w.isDefault">
         <button class="btn-ghost-sm"
           [disabled]="settingDefaultId === getId(w)"
           (click)="setDefault(w)">
           {{ settingDefaultId === getId(w) ? 'Setting...' : 'Set as default' }}
         </button>
-      </div>
+      </div> -->
     </div>
   </div>
 </div>

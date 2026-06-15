@@ -1,11 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription, interval } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { InvoiceService } from '../../core/services/invoice.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Invoice, PaymentIntent } from '../../core/models';
 
+// Statuses that will never change again — stop polling once we hit one of these
+const TERMINAL_STATUSES = ['PAID', 'EXPIRED', 'FAILED', 'CANCELLED', 'UNDERPAID', 'OVERPAID'];
+
+// How often to re-check the invoice while it's still pending
+const POLL_INTERVAL_MS = 8000;
+
 @Component({ selector: 'app-invoice-detail', templateUrl: './invoice-detail.component.html' })
-export class InvoiceDetailComponent implements OnInit {
+export class InvoiceDetailComponent implements OnInit, OnDestroy {
   invoice: Invoice | null = null;
   paymentIntent: PaymentIntent | null = null;
   paymentUrl = '';
@@ -16,6 +24,11 @@ export class InvoiceDetailComponent implements OnInit {
   registeringDetection = false;
   downloadingQr = false;
 
+  isPolling = false;
+
+  private invoiceId = '';
+  private pollSub: Subscription | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private invoiceService: InvoiceService,
@@ -23,34 +36,91 @@ export class InvoiceDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
-    this.invoiceService.getById(id).subscribe({
-      next: res => {
-        const d: any = res.data;
-        this.invoice = d.invoice;
-        this.paymentIntent = d.paymentIntent;
+    this.invoiceId = this.route.snapshot.paramMap.get('id')!;
+    this.loadInvoice(true);
+  }
 
-        // paymentUrl can come from a few different places depending on payload shape
-        this.paymentUrl =
-          d.invoice?.paymentUrl ??
-          d.payment?.paymentUrl ??
-          d.paymentUrl ??
-          '';
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
 
-        // QR code url similarly nested
-        this.qrCodeUrl =
-          d.payment?.qrCodeUrl ??
-          d.invoice?.paymentQr?.qrCodeUrl ??
-          d.paymentIntent?.paymentQr?.qrCodeUrl ??
-          '';
+  // --- Data loading ---------------------------------------------------
 
-        this.detection = d.detection ?? null;
-        this.timeline = d.timeline ?? [];
-        this.loading = false;
-      },
-      error: () => { this.loading = false; }
+  private loadInvoice(isInitial: boolean): void {
+    this.invoiceService.getById(this.invoiceId).subscribe({
+      next: res => this.handleInvoiceResponse(res.data, isInitial),
+      error: () => {
+        if (isInitial) this.loading = false;
+      }
     });
   }
+
+  private handleInvoiceResponse(d: any, isInitial: boolean): void {
+    const previousStatus = this.invoice?.status;
+
+    this.invoice = d.invoice;
+    this.paymentIntent = d.paymentIntent;
+
+    this.paymentUrl =
+      d.invoice?.paymentUrl ??
+      d.payment?.paymentUrl ??
+      d.paymentUrl ??
+      '';
+
+    this.qrCodeUrl =
+      d.payment?.qrCodeUrl ??
+      d.invoice?.paymentQr?.qrCodeUrl ??
+      d.paymentIntent?.paymentQr?.qrCodeUrl ??
+      '';
+
+    this.detection = d.detection ?? null;
+    this.timeline = d.timeline ?? [];
+
+    if (isInitial) {
+      this.loading = false;
+      this.startPolling();
+      return;
+    }
+
+    // Status changed mid-poll — let the user know
+    if (previousStatus && this.invoice && previousStatus !== this.invoice.status) {
+      this.toast.success(`Invoice status changed: ${previousStatus} → ${this.invoice.status}`);
+    }
+
+    if (this.invoice && TERMINAL_STATUSES.includes(this.invoice.status)) {
+      this.stopPolling();
+    }
+  }
+
+  // --- Polling ----------------------------------------------------------
+
+  private startPolling(): void {
+    if (this.pollSub || !this.invoice) return;
+    if (TERMINAL_STATUSES.includes(this.invoice.status)) return;
+
+    this.isPolling = true;
+    this.pollSub = interval(POLL_INTERVAL_MS)
+      .pipe(switchMap(() => this.invoiceService.getById(this.invoiceId)))
+      .subscribe({
+        next: res => this.handleInvoiceResponse(res.data, false),
+        error: () => {
+          // transient network errors shouldn't kill the poll — just try again next tick
+        }
+      });
+  }
+
+  private stopPolling(): void {
+    this.pollSub?.unsubscribe();
+    this.pollSub = null;
+    this.isPolling = false;
+  }
+
+  /** Lets the user trigger an immediate check without waiting for the next tick */
+  refreshNow(): void {
+    this.loadInvoice(false);
+  }
+
+  // --- Existing methods (unchanged) --------------------------------------
 
   registerDetection(): void {
     const id = this.paymentIntent?.paymentIntentId ?? (this.paymentIntent as any)?._id ?? '';
@@ -110,8 +180,6 @@ export class InvoiceDetailComponent implements OnInit {
     return this.paymentIntent?.expectedCryptoNetwork ?? '';
   }
 
-  // Download the QR code image (fetch as blob to bypass <a download> CORS quirks
-  // with presigned S3/Contabo URLs)
   async downloadQr(): Promise<void> {
     if (!this.qrCodeUrl) return;
     this.downloadingQr = true;
@@ -127,7 +195,6 @@ export class InvoiceDetailComponent implements OnInit {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch {
-      // Fallback: open in new tab so the user can save manually
       window.open(this.qrCodeUrl, '_blank');
       this.toast.error('Could not auto-download — opened in a new tab instead');
     } finally {
@@ -135,7 +202,6 @@ export class InvoiceDetailComponent implements OnInit {
     }
   }
 
-  // Share the payment link (Web Share API where available, copy as fallback)
   async sharePaymentLink(): Promise<void> {
     if (!this.paymentUrl) return;
     if (navigator.share) {

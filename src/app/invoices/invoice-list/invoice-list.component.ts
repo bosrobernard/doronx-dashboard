@@ -152,3 +152,5 @@ export class InvoiceListComponent implements OnInit {
     return inv.payment?.expectedCryptoNetwork ?? '';
   }
 }
+
+
