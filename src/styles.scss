@@ -365,14 +365,14 @@ code {
 }
 .auth-card {
   background: var(--card);
-  border: 1px solid var(--border);
+  // border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: clamp(28px, 4vw, 48px);
   width: 100%;
   max-width: 440px;
   position: relative;
   z-index: 2;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  // box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
 .auth-card.wide {
   max-width: 580px;
@@ -439,12 +439,12 @@ code {
   width: 600px;
   height: 600px;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(247, 147, 26, 0.18) 0%,
-    transparent 65%
-  );
-  filter: blur(60px);
+  // background: radial-gradient(
+  //   ellipse at center,
+  //   rgba(247, 147, 26, 0.18) 0%,
+  //   transparent 65%
+  // );
+  // filter: blur(60px);
 }
 .auth-btn-row {
   display: flex;

@@ -40,3 +40,39 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+
+
+
+
+{
+    method: "GET",
+    path: "/smart-invoicing/public/stands/{standCode}",
+    options: { auth: false },
+    handler: PaymentStandPublicHandler.getPublicStand,
+  },
+{
+    method: "POST",
+    path: "/smart-invoicing/public/stands/{standCode}/generate-invoice",
+    options: {
+      auth: false,
+      validate: {
+        payload: joi.object({
+          amount: joi.number().positive().allow(null),
+          asset: joi.string().required(),
+          network: networkSchema,
+          payerName: joi.string().allow("", null),
+          payerPhone: joi.string().allow("", null),
+          payerEmail: joi.string().email().allow("", null),
+          description: joi.string().allow("", null),
+        }),
+      },
+    },
+    handler: PaymentStandPublicHandler.generateInvoiceFromStand,
+  },
+{
+    method: "GET",
+    path: "/smart-invoicing/public/stands/{standCode}/print",
+    options: { auth: false },
+    handler: PaymentStandPrintHandler.printStand,
+  },
