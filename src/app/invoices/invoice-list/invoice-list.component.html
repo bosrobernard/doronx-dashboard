@@ -4,13 +4,54 @@
       <h2 class="page-title">Invoices</h2>
       <p class="page-sub">{{ total }} invoice{{ total !== 1 ? 's' : '' }} total</p>
     </div>
-    <a routerLink="/invoices/create" class="btn-primary">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-      New Invoice
-    </a>
+
+    <div class="page-header-actions">
+      <!-- Export menu -->
+      <div class="export-menu">
+        <button class="btn-export" (click)="exportMenuOpen = !exportMenuOpen" [disabled]="exportLoading">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          {{ exportLoading ? 'Exporting…' : 'Export' }}
+        </button>
+
+        <div class="export-dropdown" *ngIf="exportMenuOpen">
+          <div class="export-group">
+            <label>Scope</label>
+            <select class="form-select-sm" [(ngModel)]="exportScope">
+              <option value="current">Current page ({{ invoices.length }})</option>
+              <option value="all">All matching ({{ total }})</option>
+            </select>
+          </div>
+
+          <div class="export-group">
+            <label>Worksheet structure</label>
+            <select class="form-select-sm" [(ngModel)]="exportStructure">
+              <option value="single">Single sheet</option>
+              <option value="summary-detail">Summary + Detail</option>
+            </select>
+          </div>
+
+          <button
+            class="btn-primary export-confirm"
+            [disabled]="exportLoading"
+            (click)="onExport(exportScope, exportStructure)"
+          >
+            {{ exportLoading ? 'Exporting…' : 'Download .xlsx' }}
+          </button>
+        </div>
+      </div>
+
+      <a routerLink="/invoices/create" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New Invoice
+      </a>
+    </div>
   </div>
 
   <div class="info-banner">
@@ -118,6 +159,12 @@
 
 
 <style>
+  .page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -159,5 +206,74 @@
     color: #64748b;
     border: 1px solid rgba(100, 116, 139, 0.3);
     text-decoration: line-through;
+  }
+
+  /* Export dropdown */
+  .export-menu {
+    position: relative;
+  }
+
+  .btn-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-export:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  .btn-export:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .export-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    width: 240px;
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .export-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .export-group label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--gray);
+  }
+
+  .export-group select {
+    width: 100%;
+  }
+
+  .export-confirm {
+    width: 100%;
+    justify-content: center;
   }
 </style>

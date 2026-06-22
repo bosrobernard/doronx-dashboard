@@ -3,7 +3,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-topbar',
-  templateUrl: './topbar.component.html'
+  templateUrl: './topbar.component.html',
 })
 export class TopbarComponent {
   @Input() pageTitle = '';
@@ -13,5 +13,9 @@ export class TopbarComponent {
 
   get businessName(): string {
     return this.authService.auth?.user?.name ?? '';
+  }
+
+  get environment(): string {
+    return this.authService.auth?.environment ?? 'LIVE';
   }
 }

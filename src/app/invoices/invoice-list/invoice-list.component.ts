@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { InvoiceService } from '../../core/services/invoice.service';
-import { Invoice } from '../../core/models';
+import { ExportService, ExportScope, ExportStructure } from '../../core/services/export.service';
+import { Invoice, InvoiceSearchParams } from '../../core/models';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -21,6 +22,12 @@ export class InvoiceListComponent implements OnInit {
   hasMore = false;
   private search$ = new Subject<string>();
 
+  // --- export menu state ---
+  exportMenuOpen = false;
+  exportLoading = false;
+  exportScope: ExportScope = 'current';
+  exportStructure: ExportStructure = 'single';
+
   statuses = [
     '',
     'PAID',
@@ -35,7 +42,11 @@ export class InvoiceListComponent implements OnInit {
     'CANCELLED',
   ];
 
-  constructor(private invoiceService: InvoiceService) {}
+  constructor(
+    private invoiceService: InvoiceService,
+    private exportService: ExportService,
+    private elRef: ElementRef,
+  ) {}
 
   ngOnInit(): void {
     this.loadInvoices();
@@ -47,32 +58,27 @@ export class InvoiceListComponent implements OnInit {
       });
   }
 
+  // Close the export dropdown when clicking outside of it.
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.exportMenuOpen && !this.elRef.nativeElement.contains(event.target)) {
+      this.exportMenuOpen = false;
+    }
+  }
+
   loadInvoices(): void {
     this.loading = true;
-    this.invoiceService
-      .search({
-        q: this.search || undefined,
-        status: this.statusFilter || undefined,
-        from: this.fromDate
-          ? new Date(this.fromDate + 'T00:00:00.000Z').toISOString()
-          : undefined,
-        to: this.toDate
-          ? new Date(this.toDate + 'T23:59:59.999Z').toISOString()
-          : undefined,
-        page: this.page,
-        limit: this.limit,
-      })
-      .subscribe({
-        next: (res) => {
-          this.invoices = res.data ?? [];
-          this.total = res.meta?.total ?? res.data?.length ?? 0;
-          this.hasMore = res.meta?.hasMore ?? false;
-          this.loading = false;
-        },
-        error: () => {
-          this.loading = false;
-        },
-      });
+    this.invoiceService.search(this.buildSearchParams(this.page, this.limit)).subscribe({
+      next: (res) => {
+        this.invoices = res.data ?? [];
+        this.total = res.meta?.total ?? res.data?.length ?? 0;
+        this.hasMore = res.meta?.hasMore ?? false;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
+    });
   }
 
   onSearchChange(): void {
@@ -112,6 +118,59 @@ export class InvoiceListComponent implements OnInit {
     }
   }
 
+  // ---------- export ----------
+
+  async onExport(scope: ExportScope, structure: ExportStructure): Promise<void> {
+    this.exportLoading = true;
+    try {
+      const invoices = scope === 'current' ? this.invoices : await this.fetchAllInvoices();
+      await this.exportService.exportInvoices(invoices, { scope, structure });
+    } catch (e) {
+      console.error('Export failed', e);
+    } finally {
+      this.exportLoading = false;
+      this.exportMenuOpen = false;
+    }
+  }
+
+  // Pages through the search endpoint (respecting current filters) until
+  // every matching invoice has been collected, capped for safety.
+  private fetchAllInvoices(): Promise<Invoice[]> {
+    const pageSize = 200;
+    const maxPages = 25; // safety cap: ~5,000 invoices
+
+    const collect = (page: number, acc: Invoice[]): Promise<Invoice[]> => {
+      return new Promise((resolve, reject) => {
+        this.invoiceService.search(this.buildSearchParams(page, pageSize)).subscribe({
+          next: (res) => {
+            const batch = res.data ?? [];
+            const combined = acc.concat(batch);
+            const more = res.meta?.hasMore ?? false;
+            if (more && page < maxPages) {
+              collect(page + 1, combined).then(resolve, reject);
+            } else {
+              resolve(combined);
+            }
+          },
+          error: reject,
+        });
+      });
+    };
+
+    return collect(1, []);
+  }
+
+  private buildSearchParams(page: number, limit: number): InvoiceSearchParams {
+    return {
+      q: this.search || undefined,
+      status: this.statusFilter || undefined,
+      from: this.fromDate ? new Date(this.fromDate + 'T00:00:00.000Z').toISOString() : undefined,
+      to: this.toDate ? new Date(this.toDate + 'T23:59:59.999Z').toISOString() : undefined,
+      page,
+      limit,
+    };
+  }
+
   statusBadge(status: string): string {
     const map: Record<string, string> = {
       PAID: 'success',
@@ -135,7 +194,6 @@ export class InvoiceListComponent implements OnInit {
 
   // Robust lookup for the expected crypto amount — different endpoints
   // nest this value in different places, so check every known location.
-  // Robust lookup for the expected crypto amount
   getExpectedCrypto(inv: any): number {
     return (
       inv.payment?.amountFingerprint?.finalExpectedAmount ??
@@ -152,5 +210,3 @@ export class InvoiceListComponent implements OnInit {
     return inv.payment?.expectedCryptoNetwork ?? '';
   }
 }
-
-

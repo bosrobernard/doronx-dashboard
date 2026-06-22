@@ -8,7 +8,9 @@
   </button>
   <div class="topbar-title">{{ pageTitle }}</div>
   <div class="topbar-right">
-    <div class="topbar-env-badge">LIVE</div>
+    <div class="topbar-env-badge" [class.env-test]="environment === 'TEST'">
+      {{ environment }}
+    </div>
     <div class="topbar-user">{{ businessName }}</div>
   </div>
 </header>
