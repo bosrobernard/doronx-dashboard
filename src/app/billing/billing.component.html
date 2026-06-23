@@ -31,7 +31,7 @@
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <span>DoronPay uses <strong>pay-per-detection</strong> billing. One usage event per confirmed payment. TEST
+      <span>Doronx uses <strong>pay-per-detection</strong> billing. One usage event per confirmed payment. TEST
         environment usage is non-billable.</span>
     </div>
 
@@ -189,14 +189,16 @@
         <tbody>
           <tr *ngFor="let bill of bills">
             <td class="mono">{{ bill.billNumber }}</td>
-            <td class="small-text">{{ bill.period || '—' }}</td>
+            <td class="small-text">
+              {{ (bill.periodStart | date:'medShortDate') + ' – ' + (bill.periodEnd | date:'medShortDate') || '—' }}
+            </td>
             <td class="mono">{{ bill.currency }} {{ bill.totalAmount | number:'1.2-2' }}</td>
             <td><app-badge [label]="bill.status" [type]="bill.status === 'PAID' ? 'success' : 'warning'"></app-badge>
             </td>
-            <td class="small-text muted">{{ bill.dueDate ? (bill.dueDate | date:'mediumDate') : '—' }}</td>
+            <td class="small-text muted">{{ bill.dueAt ? (bill.dueAt | date:'mediumDate') : '—' }}</td>
             <td>
-              <button class="btn-ghost-sm" *ngIf="bill.status !== 'PAID'"
-                (click)="openPayForm(bill.billId ?? bill._id ?? '')">Pay with crypto</button>
+              <button class="btn-ghost-sm" *ngIf="bill.status !== 'PAID'" (click)="openPayForm(bill._id)">Pay with
+                crypto</button>
               <span class="muted tiny-text" *ngIf="bill.status === 'PAID'">Paid</span>
             </td>
           </tr>
@@ -237,4 +239,3 @@
     </div>
   </ng-container>
 </div>
-

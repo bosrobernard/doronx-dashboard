@@ -294,7 +294,7 @@ export interface PaymentStand {
   printUrl?: string;
   qrCode?: string;
   isActive?: boolean;
-  fixedAmount?: string
+  fixedAmount?: string;
 }
 
 export interface CreatePaymentStandPayload {
@@ -371,7 +371,7 @@ export interface BillingUsage {
 }
 
 export interface BillingBill {
-  _id?: string;
+  _id: string;
   billId?: string;
   billNumber: string;
   totalAmount: number;
@@ -380,6 +380,9 @@ export interface BillingBill {
   period?: string;
   dueDate?: string;
   createdAt?: string;
+  periodStart?: string;
+  dueAt?: string;
+  periodEnd?: string
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────

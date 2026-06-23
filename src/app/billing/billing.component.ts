@@ -79,7 +79,15 @@ export class BillingComponent implements OnInit {
           this.usage = usageData ?? null;
         }
 
-        this.bills = (bills as any)?.data ?? [];
+        this.bills = ((bills as any)?.data ?? []).map((b: any) => ({
+          ...b,
+          billId: b._id, // normalize ID
+          period:
+            b.periodStart && b.periodEnd // normalize period
+              ? `${new Date(b.periodStart).toLocaleDateString()} – ${new Date(b.periodEnd).toLocaleDateString()}`
+              : null,
+          dueDate: b.dueAt ?? null, // normalize due date
+        }));
         this.loading = false;
       })
       .catch(() => {
@@ -90,13 +98,14 @@ export class BillingComponent implements OnInit {
   async changePlan(planCode: string): Promise<void> {
     if (planCode === this.subscription?.planCode) return;
 
-    const planName = this.plans.find(p => p.code === planCode)?.name ?? planCode;
+    const planName =
+      this.plans.find((p) => p.code === planCode)?.name ?? planCode;
     const isFree = planCode === 'FREE';
 
     const confirmed = await this.confirmModal.confirm({
       title: `Switch to ${planName}`,
       message: isFree
-        ? 'You\'ll lose access to paid features immediately. Are you sure?'
+        ? "You'll lose access to paid features immediately. Are you sure?"
         : `Your subscription will be updated to the ${planName} plan. You can change this at any time.`,
       confirmLabel: `Switch to ${planName}`,
       cancelLabel: 'Keep current plan',
@@ -106,14 +115,20 @@ export class BillingComponent implements OnInit {
     if (!confirmed) return;
 
     this.changingPlan = true;
-    this.billingSvc.changePlan(planCode, 'Merchant-initiated plan change').subscribe({
-      next: () => {
-        this.toast.success('Plan changed!');
-        this.loadAll();
-      },
-      error: () => { this.changingPlan = false; },
-      complete: () => { this.changingPlan = false; },
-    });
+    this.billingSvc
+      .changePlan(planCode, 'Merchant-initiated plan change')
+      .subscribe({
+        next: () => {
+          this.toast.success('Plan changed!');
+          this.loadAll();
+        },
+        error: () => {
+          this.changingPlan = false;
+        },
+        complete: () => {
+          this.changingPlan = false;
+        },
+      });
   }
 
   generateBill(): void {
@@ -123,8 +138,12 @@ export class BillingComponent implements OnInit {
         this.toast.success(`Bill ${res.data.billNumber} generated`);
         this.loadAll();
       },
-      error: () => { this.generatingBill = false; },
-      complete: () => { this.generatingBill = false; },
+      error: () => {
+        this.generatingBill = false;
+      },
+      complete: () => {
+        this.generatingBill = false;
+      },
     });
   }
 
@@ -149,7 +168,9 @@ export class BillingComponent implements OnInit {
     this.payingBillId = billId;
     this.billingSvc.payBillCrypto(billId, asset, network).subscribe({
       next: (res) => {
-        this.toast.success('Payment intent created — send crypto to the address shown');
+        this.toast.success(
+          'Payment intent created — send crypto to the address shown',
+        );
         this.showPayForm = null;
         // Use a nicer inline display instead of alert() — show address in a toast or separate UI
         const addr = res.data.payment.receivingAddress;
@@ -157,8 +178,12 @@ export class BillingComponent implements OnInit {
         this.toast.success(`Send ${amount} ${asset} to: ${addr}`);
         this.loadAll();
       },
-      error: () => { this.payingBillId = null; },
-      complete: () => { this.payingBillId = null; },
+      error: () => {
+        this.payingBillId = null;
+      },
+      complete: () => {
+        this.payingBillId = null;
+      },
     });
   }
 

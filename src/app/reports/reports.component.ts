@@ -105,34 +105,40 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   }
 
   get volumeEntries(): { currency: string; amount: number }[] {
-    // API has no volume field — derive it from payments
-    if (!this.summary?.payments) return [];
-    if (!Array.isArray(this.summary.payments)) return [];
+    if (!this.summary?.payments || !Array.isArray(this.summary.payments))
+      return [];
 
-    // Group by asset, sum totalExpectedCrypto
     const map: Record<string, number> = {};
     for (const p of this.summary.payments) {
+      const status = p._id?.status ?? '';
+      if (status === 'EXPIRED') continue; // skip expired payments
       const asset = p._id?.asset ?? 'UNKNOWN';
-      map[asset] = (map[asset] ?? 0) + (p.totalExpectedCrypto ?? 0);
+      map[asset] = (map[asset] ?? 0) + (p.totalDetectedCrypto ?? 0); // use detected, not expected
     }
-    return Object.entries(map).map(([currency, amount]) => ({
-      currency,
-      amount,
-    }));
+
+    // Filter out zero amounts
+    return Object.entries(map)
+      .filter(([, amount]) => amount > 0)
+      .map(([currency, amount]) => ({ currency, amount }));
   }
 
   get paymentEntries(): { asset: string; amount: number }[] {
-    if (!this.summary?.payments) return [];
-    if (!Array.isArray(this.summary.payments)) return [];
+    if (!this.summary?.payments || !Array.isArray(this.summary.payments))
+      return [];
 
-    return this.summary.payments.map((p: any) => {
-      // _id is an object: { status, asset, network }
-      const idObj = p._id && typeof p._id === 'object' ? p._id : {};
-      return {
-        asset: `${idObj.asset ?? 'UNKNOWN'} (${idObj.network ?? ''})`,
-        amount: p.totalExpectedCrypto ?? p.amount ?? 0,
-      };
-    });
+    return this.summary.payments
+      .filter((p: any) => {
+        const status = p._id?.status ?? '';
+        const detected = p.totalDetectedCrypto ?? 0;
+        return status !== 'EXPIRED' && detected > 0; // only real received payments
+      })
+      .map((p: any) => {
+        const idObj = p._id && typeof p._id === 'object' ? p._id : {};
+        return {
+          asset: `${idObj.asset ?? 'UNKNOWN'} (${idObj.network ?? ''})`,
+          amount: p.totalDetectedCrypto ?? 0, // use detected, not expected
+        };
+      });
   }
 
   get webhookStats() {
@@ -145,11 +151,10 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   // Check if summary has any meaningful data
   get hasData(): boolean {
     if (!this.summary) return false;
-    return (
-      this.summary.invoices?.length > 0 ||
-      this.summary.payments?.length > 0 || // ← payments is an array of objects
-      this.summary.usage?.length > 0
-    );
+    const hasInvoices = this.summary.invoices?.length > 0;
+    const hasRealPayments = this.paymentEntries.length > 0;
+    const hasUsage = this.summary.usage?.length > 0;
+    return hasInvoices || hasRealPayments || hasUsage;
   }
 
   private buildCharts(): void {
