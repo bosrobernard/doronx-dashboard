@@ -492,7 +492,14 @@ export class PaymentStandsComponent implements OnInit {
   }
 
   openPrint(url: string): void {
-    window.open(url, '_blank');
+    const printWindow = window.open(url, '_blank');
+    if (!printWindow) {
+      this.toast.warning('Please allow popups to print the QR code.');
+      return;
+    }
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
   }
 
   f(n: string) {

@@ -313,14 +313,21 @@ export interface CreatePaymentStandPayload {
 
 // ─── Webhooks ────────────────────────────────────────────────────────────────
 export interface WebhookEndpoint {
-  _id?: string;
-  webhookEndpointId?: string;
+  endpointId: string;
   name: string;
   url: string;
   eventTypes: string[];
-  secret?: string;
-  isActive?: boolean;
-  createdAt?: string;
+  isActive: boolean;
+  secretConfigured: boolean;
+  lastDeliveryAt: string | null;
+  lastDeliveryStatus: string | null;
+  failureCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatedWebhookEndpoint extends WebhookEndpoint {
+  secret: string; // only present on creation response
 }
 
 export interface CreateWebhookPayload {
@@ -330,16 +337,22 @@ export interface CreateWebhookPayload {
 }
 
 export interface WebhookDelivery {
-  _id?: string;
-  deliveryId?: string;
+  _id: string;
+  endpointId: string;
   eventId: string;
   eventType: string;
   status: EWebhookDeliveryStatus;
   attempts: number;
-  responseStatus?: number;
-  errorMessage?: string;
-  nextAttemptAt?: string;
-  createdAt?: string;
+  maxAttempts: number;
+  responseStatus: number | null;
+  responseBody: string | null;
+  errorMessage: string | null;
+  nextAttemptAt: string | null;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: { endpointName?: string };
 }
 
 // ─── Billing ─────────────────────────────────────────────────────────────────

@@ -6,7 +6,8 @@
     </div>
     <button class="btn-primary" (click)="showForm = !showForm" *ngIf="activeTab === 'endpoints'">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       Add Endpoint
     </button>
@@ -34,7 +35,8 @@
     <button class="tab-btn" [class.active]="activeTab === 'endpoints'" (click)="activeTab = 'endpoints'">
       Endpoints
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'deliveries'" (click)="activeTab = 'deliveries'; loadDeliveries()">
+    <button class="tab-btn" [class.active]="activeTab === 'deliveries'"
+      (click)="activeTab = 'deliveries'; loadDeliveries()">
       Delivery Logs
     </button>
   </div>
@@ -55,16 +57,16 @@
             <label class="form-label">Endpoint URL</label>
             <input class="form-input" formControlName="url" placeholder="https://merchant.com/webhooks/doronpay">
             <div class="form-error" *ngIf="f('url').touched && f('url').errors?.['required']">Required</div>
-            <div class="form-error" *ngIf="f('url').touched && f('url').errors?.['pattern']">Must be a valid https URL</div>
+            <div class="form-error" *ngIf="f('url').touched && f('url').errors?.['pattern']">Must be a valid https URL
+            </div>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Event types</label>
           <div class="event-toggle-group">
-            <button type="button" *ngFor="let e of allEvents"
-              class="network-toggle-btn" [class.selected]="isEventSelected(e)"
-              (click)="toggleEvent(e)">{{ e }}</button>
+            <button type="button" *ngFor="let e of allEvents" class="network-toggle-btn"
+              [class.selected]="isEventSelected(e)" (click)="toggleEvent(e)">{{ e }}</button>
           </div>
         </div>
 
@@ -82,8 +84,7 @@
       <div class="skeleton-row" *ngFor="let i of [1,2]" style="height:120px"></div>
     </div>
 
-    <app-empty-state *ngIf="!loading && endpoints.length === 0"
-      title="No webhook endpoints"
+    <app-empty-state *ngIf="!loading && endpoints.length === 0" title="No webhook endpoints"
       description="Add an endpoint to receive real-time invoice and payment events.">
       <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -106,12 +107,15 @@
         </div>
         <div class="ep-footer">
           <span class="ep-date muted" *ngIf="ep.createdAt">Created {{ ep.createdAt | date:'mediumDate' }}</span>
+
           <div class="ep-actions">
-            <button class="btn-ghost-sm danger"
-              [disabled]="deletingId === (ep.webhookEndpointId ?? ep._id)"
-              (click)="delete(ep)">
-              {{ deletingId === (ep.webhookEndpointId ?? ep._id) ? 'Deleting...' : 'Delete' }}
+            <button class="btn-ghost-sm" *ngIf="ep.isActive !== false" [disabled]="disablingId === ep.endpointId"
+              (click)="disable(ep)">
+              {{ disablingId === ep.endpointId ? 'Disabling...' : 'Disable' }}
             </button>
+            <!-- <button class="btn-ghost-sm danger" [disabled]="deletingId === ep.endpointId" (click)="delete(ep)">
+              {{ deletingId === ep.endpointId ? 'Deleting...' : 'Delete' }}
+            </button> -->
           </div>
         </div>
       </div>
@@ -156,8 +160,8 @@
       <div class="skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
     </div>
 
-    <app-empty-state *ngIf="!loadingDeliveries && deliveries.length === 0"
-      title="No delivery logs" description="Webhook deliveries appear here as events are fired.">
+    <app-empty-state *ngIf="!loadingDeliveries && deliveries.length === 0" title="No delivery logs"
+      description="Webhook deliveries appear here as events are fired.">
       <svg slot="icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
       </svg>
@@ -189,6 +193,3 @@
     </div>
   </ng-container>
 </div>
-
-
-

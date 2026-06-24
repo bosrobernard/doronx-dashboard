@@ -4,6 +4,7 @@ import { WebhookManagementService } from '../core/services/webhook-management.se
 import { ToastService } from '../core/services/toast.service';
 import { WebhookEndpoint, WebhookDelivery } from '../core/models';
 import { environment } from '../../environments/environment';
+import { ConfirmModalService } from '../core/services/confirm-modal.service';
 
 const ALL_EVENTS = [
   'invoice.created',
@@ -31,6 +32,9 @@ export class WebhookManagementComponent implements OnInit {
   form: FormGroup;
   allEvents = ALL_EVENTS;
 
+    disablingId: string | null = null;
+
+
   headersSample = `X-DoronPay-Event: invoice.paid
 X-DoronPay-Timestamp: 1780000000
 X-DoronPay-Signature: <hmac_sha256(secret, timestamp.rawBody)>
@@ -53,6 +57,7 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
     private svc: WebhookManagementService,
     private fb: FormBuilder,
     private toast: ToastService,
+    private confirmModal: ConfirmModalService,
   ) {
     this.form = this.fb.group({
       name: ['', Validators.required],
@@ -71,41 +76,32 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
 
   load(): void {
     this.loading = true;
-    console.log(
-      'Fetching:',
-      `${environment.apiUrl}${environment.smartInvoicingPath}/webhooks`,
-    );
-    this.svc.list().subscribe({
+    this.svc.list({ page: 1, limit: 100 }).subscribe({
       next: (res) => {
-        this.endpoints = res.data ?? [];
+        this.endpoints = res.data?.items ?? [];
         this.loading = false;
       },
-      error: (err) => {
-        // Backend returns 404 when no endpoints exist yet for this workspace.
-        // Treat that as an empty list instead of a real error.
-        if (err?.status === 404) {
-          this.endpoints = [];
-        } else {
-          this.toast.error('Failed to load webhook endpoints');
-        }
+      error: () => {
+        this.toast.error('Failed to load webhook endpoints');
+        this.endpoints = [];
         this.loading = false;
       },
     });
   }
 
- loadDeliveries(): void {
-  this.loadingDeliveries = true;
-  this.svc.getDeliveries(this.deliveryFilter || undefined).subscribe({
-    next: (res:any) => {
-      this.deliveries = res.data?.items ?? [];
-      this.loadingDeliveries = false;
-    },
-    error: () => {
-      this.deliveries = [];
-      this.loadingDeliveries = false;
-    },
-  });
-}
+  loadDeliveries(): void {
+    this.loadingDeliveries = true;
+    this.svc.getDeliveries(this.deliveryFilter || undefined).subscribe({
+      next: (res) => {
+        this.deliveries = res.data?.items ?? [];
+        this.loadingDeliveries = false;
+      },
+      error: () => {
+        this.deliveries = [];
+        this.loadingDeliveries = false;
+      },
+    });
+  }
 
   toggleEvent(event: string): void {
     const curr: string[] = this.form.get('eventTypes')?.value ?? [];
@@ -118,6 +114,30 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
   isEventSelected(event: string): boolean {
     return (this.form.get('eventTypes')?.value ?? []).includes(event);
   }
+
+
+async disable(ep: WebhookEndpoint): Promise<void> {
+  const confirmed = await this.confirmModal.confirm({
+    title: 'Disable webhook',
+    message: `Disable webhook "${ep.name}"? It will stop receiving events until re-enabled.`,
+    confirmLabel: 'Disable',
+    cancelLabel: 'Cancel',
+  });
+  if (!confirmed) return;
+
+  const id = ep.endpointId;
+  this.disablingId = id;
+  this.svc.disable(id).subscribe({
+    next: () => {
+      this.toast.success('Webhook disabled');
+      this.load();
+      this.disablingId = null;
+    },
+    error: () => {
+      this.disablingId = null;
+    },
+  });
+}
 
   save(): void {
     if (this.form.invalid) {
@@ -145,9 +165,17 @@ function verifyWebhook(rawBody, timestamp, signature, secret) {
     });
   }
 
-  delete(ep: WebhookEndpoint): void {
-    const id = ep.webhookEndpointId ?? ep._id ?? '';
-    if (!confirm(`Delete webhook "${ep.name}"?`)) return;
+  async delete(ep: WebhookEndpoint): Promise<void> {
+    const confirmed = await this.confirmModal.confirm({
+      title: 'Delete webhook',
+      message: `Delete webhook "${ep.name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    const id = ep.endpointId;
     this.deletingId = id;
     this.svc.delete(id).subscribe({
       next: () => {
