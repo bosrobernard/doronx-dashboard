@@ -469,5 +469,13 @@ export interface WorkspaceSetup {
     liveMode?: string | null;
     nonCustodial?: string | null;
   };
-  summary?: Record<string, boolean>;
+  summary?: {
+  hasWorkspace?: boolean;
+  hasBranding?: boolean;
+  hasWallet?: boolean;
+  hasTradePairs?: boolean;
+  hasSubscription?: boolean;
+  hasApiKey?: boolean;
+  hasWebhook?: boolean;
+};
 }

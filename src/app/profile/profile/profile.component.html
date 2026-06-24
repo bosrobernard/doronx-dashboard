@@ -1,0 +1,445 @@
+<div class="page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Profile</h2>
+      <p class="page-sub">Your account and workspace details</p>
+    </div>
+  </div>
+
+  <!-- Profile Hero Card -->
+  <div class="profile-hero-card">
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">{{ initials }}</div>
+      <div class="profile-avatar-env">
+        <span class="env-chip" [class.env-live]="environment === 'LIVE'" [class.env-test]="environment === 'TEST'">
+          {{ environment }}
+        </span>
+      </div>
+    </div>
+    <div class="profile-hero-info">
+      <h2 class="profile-hero-name">{{ displayName }}</h2>
+      <p class="profile-hero-email">{{ email }}</p>
+      <div class="profile-hero-badges">
+        <span class="badge badge-orange">{{ role }}</span>
+        <span class="badge badge-success" *ngIf="canGoLive">LIVE READY</span>
+        <span class="badge badge-warning" *ngIf="!canGoLive && !setupLoading">Setup incomplete</span>
+      </div>
+    </div>
+    <div class="profile-progress-wrap" *ngIf="!setupLoading">
+      <div class="profile-progress-label">
+        <span>Workspace Setup</span>
+        <span class="profile-progress-pct">{{ setupProgress }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="setupProgress"
+          [style.background]="setupProgress === 100 ? 'linear-gradient(90deg,#22c55e,#15803d)' : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
+        </div>
+      </div>
+      <div class="profile-progress-steps">{{ completedSteps }}/{{ totalSteps }} steps completed</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+      Account Overview
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'workspace'" (click)="activeTab = 'workspace'">
+      Workspace Setup
+    </button>
+  </div>
+
+  <!-- ── OVERVIEW TAB ── -->
+  <ng-container *ngIf="activeTab === 'overview'">
+
+    <div class="profile-grid">
+
+      <!-- User Details -->
+      <div class="detail-card">
+        <div class="detail-card-head">
+          <span class="detail-card-title">User Details</span>
+          <span class="badge badge-orange">{{ role }}</span>
+        </div>
+        <div class="profile-detail-list">
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Full name</span>
+            <span class="detail-value">{{ displayName }}</span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Email address</span>
+            <span class="detail-value">{{ email }}</span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Role</span>
+            <span class="detail-value">{{ role }}</span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Environment</span>
+            <span class="detail-value">
+              <span class="env-chip" [class.env-live]="environment === 'LIVE'"
+                [class.env-test]="environment === 'TEST'">
+                {{ environment }}
+              </span>
+            </span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">User ID</span>
+            <div class="copy-row">
+              <span class="detail-value mono small-text muted">{{ userId }}</span>
+              <button class="copy-btn" (click)="copyToClipboard(userId, 'userId')" title="Copy">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <span class="profile-copied" *ngIf="copied === 'userId'">Copied!</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Workspace IDs -->
+      <div class="detail-card">
+        <div class="detail-card-head">
+          <span class="detail-card-title">Workspace Identifiers</span>
+        </div>
+        <div class="profile-detail-list">
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Tenant ID</span>
+            <div class="copy-row">
+              <span class="detail-value mono small-text muted">{{ tenantId }}</span>
+              <button class="copy-btn" (click)="copyToClipboard(tenantId, 'tenantId')" title="Copy">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <span class="profile-copied" *ngIf="copied === 'tenantId'">Copied!</span>
+            </div>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Business ID</span>
+            <div class="copy-row">
+              <span class="detail-value mono small-text muted">{{ businessId }}</span>
+              <button class="copy-btn" (click)="copyToClipboard(businessId, 'businessId')" title="Copy">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <span class="profile-copied" *ngIf="copied === 'businessId'">Copied!</span>
+            </div>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Workspace ID</span>
+            <div class="copy-row">
+              <span class="detail-value mono small-text muted">{{ workspaceId }}</span>
+              <button class="copy-btn" (click)="copyToClipboard(workspaceId, 'workspaceId')" title="Copy">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <span class="profile-copied" *ngIf="copied === 'workspaceId'">Copied!</span>
+            </div>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="detail-label">Workspace status</span>
+            <span class="detail-value">
+              <span class="badge" [class.badge-success]="workspaceStatus === 'READY'"
+                [class.badge-warning]="workspaceStatus !== 'READY'">
+                {{ workspaceStatus }}
+              </span>
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /profile-grid -->
+
+    <!-- Notices -->
+    <div class="info-banner" *ngIf="setup?.notices?.liveMode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ setup?.notices?.liveMode }}</span>
+    </div>
+
+    <div class="info-banner"
+      style="background:rgba(247,147,26,.07);border-color:var(--orange-border);color:rgba(255,255,255,.8);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span *ngIf="setup?.notices?.nonCustodial">{{ setup?.notices?.nonCustodial }}</span>
+    </div>
+
+  </ng-container>
+  <!-- ── /OVERVIEW TAB ── -->
+
+  <!-- ── WORKSPACE TAB ── -->
+  <ng-container *ngIf="activeTab === 'workspace'">
+
+    <!-- Loading -->
+    <div class="skeleton-rows" *ngIf="setupLoading">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <ng-container *ngIf="!setupLoading">
+
+      <!-- Progress summary -->
+      <div class="onboarding-progress-card">
+        <div class="op-header">
+          <div class="op-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            Workspace Setup
+          </div>
+          <div class="op-pct" [style.color]="setupProgress === 100 ? 'var(--green)' : 'var(--orange)'">
+            {{ setupProgress }}%
+          </div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="setupProgress"
+            [style.background]="setupProgress === 100 ? 'linear-gradient(90deg,#22c55e,#15803d)' : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
+          </div>
+        </div>
+        <div class="op-flags">
+          <span class="flag" [class.ok]="setup?.summary?.hasWorkspace">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Workspace
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasBranding">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Branding
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasWallet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Wallet
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasTradePairs">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Trade Pairs
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasSubscription">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Billing
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasApiKey">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            API Key
+          </span>
+          <span class="flag" [class.ok]="setup?.summary?.hasWebhook">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Webhook
+          </span>
+        </div>
+      </div>
+
+      <!-- Step checklist -->
+      <div class="section-card">
+        <div class="section-card-head">
+          <h3 class="section-card-title">Setup Checklist</h3>
+          <span class="badge badge-success" *ngIf="canGoLive">Ready for LIVE</span>
+        </div>
+
+        <div class="checklist">
+          <div class="checklist-item" *ngFor="let step of workspaceSteps" [class.done]="step.completed">
+            <div class="ci-check">
+              <svg *ngIf="step.completed" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <svg *ngIf="!step.completed" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gray2)"
+                stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            </div>
+            <div class="ci-label">
+              <div style="font-weight:600;font-size:13px;margin-bottom:3px;"
+                [style.color]="step.completed ? 'var(--gray2)' : 'var(--white)'">
+                {{ step.title }}
+              </div>
+              <div style="font-size:12px;color:var(--gray2);">{{ step.description }}</div>
+            </div>
+            <a *ngIf="!step.completed && step.action" [routerLink]="step.action.route" class="ci-action">
+              {{ step.action.label }} →
+            </a>
+            <span *ngIf="step.completed" class="ci-done-label">Done</span>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+  </ng-container>
+  <!-- ── /WORKSPACE TAB ── -->
+
+</div>
+
+<!-- Scoped styles -->
+<style>
+  .profile-hero-card {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--card);
+    border: 1px solid var(--orange-border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .profile-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #000;
+    box-shadow: 0 0 32px rgba(247, 147, 26, 0.35);
+    letter-spacing: 0.04em;
+  }
+
+  .profile-avatar-env {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+  }
+
+  .profile-hero-info {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .profile-hero-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .profile-hero-email {
+    font-size: 13px;
+    color: var(--gray);
+    margin-bottom: 10px;
+  }
+
+  .profile-hero-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .profile-progress-wrap {
+    min-width: 200px;
+  }
+
+  .profile-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .profile-progress-pct {
+    color: var(--orange);
+  }
+
+  .profile-progress-steps {
+    font-size: 11px;
+    color: var(--gray2);
+    margin-top: 6px;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .profile-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .profile-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .profile-detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .profile-copied {
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .profile-hero-card {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-progress-wrap {
+      width: 100%;
+    }
+  }
+</style>

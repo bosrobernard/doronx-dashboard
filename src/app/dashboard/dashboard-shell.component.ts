@@ -31,6 +31,7 @@ export class DashboardShellComponent implements OnInit {
     '/webhooks':       'Webhooks',
     '/reports':        'Reports',
     '/billing':        'Billing & Plans',
+    '/profile':        'Profile',
   };
 
   constructor(private router: Router) {}
@@ -48,3 +49,5 @@ export class DashboardShellComponent implements OnInit {
     this.pageTitle = this.titleMap[full] ?? this.titleMap[base] ?? 'DoronX';
   }
 }
+
+
