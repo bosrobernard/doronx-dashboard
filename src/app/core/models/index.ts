@@ -31,6 +31,19 @@ export type ESaaSPlanCode =
   | 'GROWTH'
   | 'ENTERPRISE';
 
+export type EBillStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'VOID' | 'OVERDUE';
+export type EPaymentStatus =
+  | 'PAYMENT_NOT_REQUIRED'
+  | 'UNPAID'
+  | 'AWAITING_PAYMENT'
+  | 'PAYMENT_DETECTED'
+  | 'CONFIRMING'
+  | 'PAID'
+  | 'UNDERPAID'
+  | 'OVERPAID'
+  | 'FAILED'
+  | 'EXPIRED';
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface RegisterPayload {
   name: string;
@@ -88,20 +101,49 @@ export interface AuthState {
 }
 
 // ─── Workspace ───────────────────────────────────────────────────────────────
+export interface SetupStepAction {
+  label: string;
+  route: string;
+}
+
 export interface SetupStep {
   key: string;
   title: string;
-  action?: { label: string; route: string };
+  description?: string;
+  status?: string;
+  completed?: boolean;
+  blocking?: boolean;
+  action?: SetupStepAction;
+  // legacy compat
+  route?: string;
 }
 
 export interface WorkspaceSetup {
   status: 'COMPLETE' | 'INCOMPLETE';
   environment: EEnvironment;
   progress: number;
+  completedSteps: number;
+  totalSteps: number;
   canCreateInvoice: boolean;
   canGoLive: boolean;
   nextStep?: SetupStep;
+  steps: SetupStep[];
   missingRequired: SetupStep[];
+  recommended: SetupStep[];
+  notices?: {
+    testMode?: string | null;
+    liveMode?: string | null;
+    nonCustodial?: string | null;
+  };
+  summary?: {
+    hasWorkspace?: boolean;
+    hasBranding?: boolean;
+    hasWallet?: boolean;
+    hasTradePairs?: boolean;
+    hasSubscription?: boolean;
+    hasApiKey?: boolean;
+    hasWebhook?: boolean;
+  };
 }
 
 export interface WorkspaceConfig {
@@ -370,7 +412,7 @@ export interface BillingSubscription {
   environment: EEnvironment;
   status: string;
   startDate?: string;
-  currentPeriodEnd?: string; // ← API uses this, not nextBillingDate
+  currentPeriodEnd?: string;
   nextBillingDate?: string;
   currency?: string;
   monthlyFee?: number;
@@ -383,24 +425,113 @@ export interface BillingUsage {
   period?: string;
 }
 
+// ── Bill line item ────────────────────────────────────────────────────────────
+export interface BillingBillLineItemMeta {
+  billableQuantity?: number;
+  nonBillableQuantity?: number;
+  testModeNonBillable?: boolean;
+  planCode?: string;
+  billingMode?: string;
+  billingMonth?: string;
+  [key: string]: any;
+}
+
+export interface BillingBillLineItem {
+  itemType: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  metadata?: BillingBillLineItemMeta;
+}
+
+// ── Crypto payment quote ──────────────────────────────────────────────────────
+export interface BillingBillCryptoQuote {
+  billAmount: number;
+  billCurrency: string;
+  paymentAsset: string;
+  expectedCryptoAmount: number;
+  expiresAt: string;
+  marketRate: number;
+  rate: number;
+  provider: string;
+  rateSnapshot?: any;
+  effectiveBuyRate?: number;
+  effectiveSellRate?: number;
+  markupPercent?: number;
+  spreadPercent?: number;
+  source?: string;
+  computedAt?: string;
+}
+
+// ── Bill ─────────────────────────────────────────────────────────────────────
 export interface BillingBill {
+  // Always present
   _id: string;
-  billId?: string;
   billNumber: string;
-  totalAmount: number;
   currency: string;
-  status: string;
-  period?: string;
-  dueDate?: string;
+  totalAmount: number;
+  status: EBillStatus;
+
+  // Dates
   createdAt?: string;
+  updatedAt?: string;
+  issuedAt?: string | null;
+  paidAt?: string | null;
+  dueAt?: string | null;
   periodStart?: string;
-  dueAt?: string;
-  periodEnd?: string
+  periodEnd?: string;
+
+  // Amounts
+  subscriptionFee?: number;
+  usageFee?: number;
+  taxAmount?: number;
+  discountAmount?: number;
+
+  // Payment
+  paymentStatus?: EPaymentStatus;
+  paymentMethod?: string;
+  paymentAsset?: string | null;
+  paymentNetwork?: string | null;
+  paymentIntentId?: string | null;
+  billingWalletAddress?: string | null;
+  expectedCryptoAmount?: number | null;
+  txHash?: string | null;
+
+  // Crypto payment quote (populated after pay-crypto)
+  cryptoPaymentQuote?: BillingBillCryptoQuote | null;
+
+  // Line items
+  lineItems?: BillingBillLineItem[];
+
+  // Plan / billing mode
+  planCode?: string;
+  environment?: EEnvironment;
+
+  // Metadata
+  metadata?: {
+    billingMode?: string;
+    billingMonth?: string;
+    billingPolicy?: string;
+    [key: string]: any;
+  };
+  usageSummary?: any;
+
+  // IDs
+  tenantId?: string;
+  businessId?: string;
+  workspaceId?: string;
+  ownerCustomerId?: string;
+
+  // Normalised by component (added in loadAll)
+  billId?: string;   // = _id
+  period?: string;   // formatted "d MMM – d MMM" string
+  dueDate?: string;  // = dueAt
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
 export interface ReportUsageItem {
-  _id: string; // event type e.g. "PAYMENT_STAND_CREATED"
+  _id: string;
   count: number;
   billableTotal: number;
 }
@@ -433,49 +564,4 @@ export interface PaginatedResponse<T> {
     hasMore: boolean;
   };
   total?: number;
-}
-
-export interface SetupStepAction {
-  label: string;
-  route: string;
-}
-
-export interface SetupStep {
-  key: string;
-  title: string;
-  description?: string;
-  status?: string;
-  completed?: boolean;
-  blocking?: boolean;
-  action?: SetupStepAction;
-  // legacy compat
-  route?: string;
-}
-
-export interface WorkspaceSetup {
-  status: 'COMPLETE' | 'INCOMPLETE';
-  environment: EEnvironment;
-  progress: number;
-  completedSteps: number;
-  totalSteps: number;
-  canCreateInvoice: boolean;
-  canGoLive: boolean;
-  nextStep?: SetupStep;
-  steps: SetupStep[]; // ← full ordered list
-  missingRequired: SetupStep[];
-  recommended: SetupStep[];
-  notices?: {
-    testMode?: string | null;
-    liveMode?: string | null;
-    nonCustodial?: string | null;
-  };
-  summary?: {
-  hasWorkspace?: boolean;
-  hasBranding?: boolean;
-  hasWallet?: boolean;
-  hasTradePairs?: boolean;
-  hasSubscription?: boolean;
-  hasApiKey?: boolean;
-  hasWebhook?: boolean;
-};
 }

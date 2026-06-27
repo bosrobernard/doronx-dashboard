@@ -1,9 +1,11 @@
-
 import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmModalService } from '../../core/services/confirm-modal.service';
 import { AuthState, WorkspaceSetup } from '../../core/models';
-
+import { ApiKey, ApiKeyService } from '../../core/services/api-key.service';
 
 @Component({
   selector: 'app-profile',
@@ -13,15 +15,34 @@ export class ProfileComponent implements OnInit {
   auth: AuthState | null = null;
   setup: WorkspaceSetup | null = null;
   setupLoading = true;
-  activeTab: 'overview' | 'workspace' = 'overview';
+  activeTab: 'overview' | 'workspace' | 'api-keys' = 'overview';
+
+  // ── API Keys state ───────────────────────────────────────────────────────
+  apiKeys: ApiKey[] = [];
+  apiKeysLoading = false;
+  apiKeysLoaded = false;
+  showCreateForm = false;
+  creatingKey = false;
+  createForm: FormGroup;
+  /** Holds the full key string right after creation (shown once then cleared) */
+  newKeySecret: string | null = null;
+  newKeySecretCopied = false;
 
   constructor(
     private authService: AuthService,
     private workspaceService: WorkspaceService,
-  ) {}
+    private apiKeyService: ApiKeyService,
+    private toast: ToastService,
+    private confirmModal: ConfirmModalService,
+    private fb: FormBuilder,
+  ) {
+    this.createForm = this.fb.group({
+      name: ['', Validators.required],
+    });
+  }
 
   ngOnInit(): void {
-    this.authService.auth$.subscribe(a => (this.auth = a));
+    this.authService.auth$.subscribe((a) => (this.auth = a));
 
     this.workspaceService.getSetup().subscribe({
       next: (res) => {
@@ -34,6 +55,110 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  // ── Tab switching ─────────────────────────────────────────────────────────
+  switchTab(tab: 'overview' | 'workspace' | 'api-keys'): void {
+    this.activeTab = tab;
+    if (tab === 'api-keys' && !this.apiKeysLoaded) {
+      this.loadApiKeys();
+    }
+  }
+
+  // ── API Keys ──────────────────────────────────────────────────────────────
+  loadApiKeys(): void {
+    this.apiKeysLoading = true;
+    this.apiKeyService.listApiKeys({ limit: 50 }).subscribe({
+      next: (res) => {
+        this.apiKeys = (res as any)?.data ?? [];
+        this.apiKeysLoading = false;
+        this.apiKeysLoaded = true;
+      },
+      error: () => {
+        this.apiKeysLoading = false;
+      },
+    });
+  }
+
+  openCreateForm(): void {
+    this.showCreateForm = true;
+    this.newKeySecret = null;
+    this.createForm.reset();
+  }
+
+  cancelCreate(): void {
+    this.showCreateForm = false;
+    this.newKeySecret = null;
+    this.createForm.reset();
+  }
+
+  createApiKey(): void {
+    if (this.createForm.invalid) return;
+    this.creatingKey = true;
+    this.apiKeyService.createApiKey({ name: this.createForm.value.name }).subscribe({
+      next: (res) => {
+        const created: ApiKey = (res as any)?.data ?? res;
+        this.newKeySecret = created.key ?? null;
+        this.showCreateForm = false;
+        this.createForm.reset();
+        this.creatingKey = false;
+        this.loadApiKeys();
+      },
+      error: () => {
+        this.creatingKey = false;
+      },
+    });
+  }
+
+  async disableApiKey(key: ApiKey): Promise<void> {
+    const confirmed = await this.confirmModal.confirm({
+      title: 'Disable API key',
+      message: `Disable "${key.name}"? Any integrations using this key will stop working immediately.`,
+      confirmLabel: 'Disable key',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.apiKeyService.disableApiKey(key._id).subscribe({
+      next: () => {
+        this.toast.success('API key disabled');
+        this.loadApiKeys();
+      },
+    });
+  }
+
+  async deleteApiKey(key: ApiKey): Promise<void> {
+    const confirmed = await this.confirmModal.confirm({
+      title: 'Delete API key',
+      message: `Permanently delete "${key.name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.apiKeyService.deleteApiKey(key._id).subscribe({
+      next: () => {
+        this.toast.success('API key deleted');
+        this.loadApiKeys();
+      },
+    });
+  }
+
+  copySecret(): void {
+    if (this.newKeySecret) {
+      navigator.clipboard.writeText(this.newKeySecret).then(() => {
+        this.newKeySecretCopied = true;
+        setTimeout(() => (this.newKeySecretCopied = false), 2000);
+      });
+    }
+  }
+
+  dismissSecret(): void {
+    this.newKeySecret = null;
+    this.newKeySecretCopied = false;
+  }
+
+  // ── Profile getters (unchanged) ───────────────────────────────────────────
   get initials(): string {
     const name = this.auth?.user?.name ?? this.auth?.businessName ?? '';
     return name
@@ -118,5 +243,3 @@ export class ProfileComponent implements OnInit {
     });
   }
 }
-
-

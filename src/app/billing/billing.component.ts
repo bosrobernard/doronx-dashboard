@@ -21,9 +21,26 @@ export class BillingComponent implements OnInit {
   changingPlan = false;
   generatingBill = false;
   payingBillId: string | null = null;
-  activeTab: 'overview' | 'bills' = 'overview';
+  activeTab: 'overview' | 'bills' | 'wallets' = 'overview';
   payForm: FormGroup;
   showPayForm: string | null = null;
+
+  // ── Billing Wallets ───────────────────────────────────────────────────────
+  billingWallets: any[] = [];
+  walletsLoading = false;
+  walletsLoaded = false;
+  showWalletForm = false;
+  savingWallet = false;
+  walletForm: FormGroup;
+
+  // ── Bill expand / copy ────────────────────────────────────────────────────
+  expandedBillId: string | null = null;
+  copiedAddress: string | null = null;
+
+  /** True when the backend reports PAY_AS_YOU_GO billing mode */
+  get isPayg(): boolean {
+    return (this.subscription as any)?.billingMode === 'PAY_AS_YOU_GO';
+  }
 
   constructor(
     public auth: AuthService,
@@ -36,10 +53,26 @@ export class BillingComponent implements OnInit {
       asset: ['USDT', Validators.required],
       network: ['TRC20', Validators.required],
     });
+
+    this.walletForm = this.fb.group({
+      environment: ['LIVE', Validators.required],
+      asset: ['USDT', Validators.required],
+      network: ['TRC20', Validators.required],
+      address: ['', Validators.required],
+      label: [''],
+      isDefault: [true],
+    });
   }
 
   ngOnInit(): void {
     this.loadAll();
+  }
+
+  switchTab(tab: 'overview' | 'bills' | 'wallets'): void {
+    this.activeTab = tab;
+    if (tab === 'wallets' && !this.walletsLoaded) {
+      this.loadWallets();
+    }
   }
 
   loadAll(): void {
@@ -67,7 +100,7 @@ export class BillingComponent implements OnInit {
           const webhooks = usageData.items.find((i: any) =>
             i.eventType?.includes('WEBHOOK'),
           );
-          this.usage = {
+          const usageBase: BillingUsage = {
             detections: detections?.quantity ?? 0,
             invoicesCreated: invoices?.quantity ?? 0,
             webhooksSent: webhooks?.quantity ?? 0,
@@ -75,18 +108,22 @@ export class BillingComponent implements OnInit {
               ? `${new Date(usageData.period.from).toLocaleDateString()} – ${new Date(usageData.period.to).toLocaleDateString()}`
               : 'Current period',
           };
+          (usageBase as any).totalBillableEvents = usageData.totalBillableEvents ?? null;
+          (usageBase as any).estimatedAmount = usageData.estimatedAmount ?? null;
+          (usageBase as any).currency = usageData.currency ?? null;
+          this.usage = usageBase;
         } else {
           this.usage = usageData ?? null;
         }
 
         this.bills = ((bills as any)?.data ?? []).map((b: any) => ({
           ...b,
-          billId: b._id, // normalize ID
+          billId: b._id,
           period:
-            b.periodStart && b.periodEnd // normalize period
+            b.periodStart && b.periodEnd
               ? `${new Date(b.periodStart).toLocaleDateString()} – ${new Date(b.periodEnd).toLocaleDateString()}`
               : null,
-          dueDate: b.dueAt ?? null, // normalize due date
+          dueDate: b.dueAt ?? null,
         }));
         this.loading = false;
       })
@@ -95,6 +132,75 @@ export class BillingComponent implements OnInit {
       });
   }
 
+  // ── Billing Wallets ───────────────────────────────────────────────────────
+  // ── Bill expand / copy ────────────────────────────────────────────────────
+  toggleBill(billId: string): void {
+    this.expandedBillId = this.expandedBillId === billId ? null : billId;
+    if (this.expandedBillId !== billId) this.showPayForm = null;
+  }
+
+  copyAddress(address: string): void {
+    navigator.clipboard.writeText(address).then(() => {
+      this.copiedAddress = address;
+      setTimeout(() => (this.copiedAddress = null), 2500);
+    });
+  }
+
+  loadWallets(): void {
+    this.walletsLoading = true;
+    this.billingSvc.listBillingWallets().subscribe({
+      next: (res) => {
+        this.billingWallets = (res as any)?.data ?? [];
+        this.walletsLoading = false;
+        this.walletsLoaded = true;
+      },
+      error: () => {
+        this.walletsLoading = false;
+        this.walletsLoaded = true;
+      },
+    });
+  }
+
+  openWalletForm(): void {
+    this.showWalletForm = true;
+    // Pre-fill environment from current auth context
+    const env = this.auth.auth?.environment ?? 'LIVE';
+    this.walletForm.reset({
+      environment: env,
+      asset: 'USDT',
+      network: 'TRC20',
+      address: '',
+      label: '',
+      isDefault: true,
+    });
+  }
+
+  cancelWalletForm(): void {
+    this.showWalletForm = false;
+    this.walletForm.reset();
+  }
+
+  saveWallet(): void {
+    if (this.walletForm.invalid) return;
+    this.savingWallet = true;
+    const { environment, asset, network, address, label, isDefault } =
+      this.walletForm.value;
+    this.billingSvc
+      .createBillingWallet({ environment, asset, network, address, label, isDefault })
+      .subscribe({
+        next: () => {
+          this.toast.success('Billing wallet saved');
+          this.showWalletForm = false;
+          this.savingWallet = false;
+          this.loadWallets();
+        },
+        error: () => {
+          this.savingWallet = false;
+        },
+      });
+  }
+
+  // ── Plans ─────────────────────────────────────────────────────────────────
   async changePlan(planCode: string): Promise<void> {
     if (planCode === this.subscription?.planCode) return;
 
@@ -172,7 +278,6 @@ export class BillingComponent implements OnInit {
           'Payment intent created — send crypto to the address shown',
         );
         this.showPayForm = null;
-        // Use a nicer inline display instead of alert() — show address in a toast or separate UI
         const addr = res.data.payment.receivingAddress;
         const amount = res.data.payment.expectedCryptoAmount;
         this.toast.success(`Send ${amount} ${asset} to: ${addr}`);

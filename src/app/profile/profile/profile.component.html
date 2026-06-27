@@ -4,7 +4,7 @@
   <div class="page-header">
     <div>
       <h2 class="page-title">Profile</h2>
-      <p class="page-sub">Your account and workspace details</p>
+      <p class="page-sub">Your account, workspace, and API keys</p>
     </div>
   </div>
 
@@ -33,8 +33,9 @@
         <span class="profile-progress-pct">{{ setupProgress }}%</span>
       </div>
       <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="setupProgress"
-          [style.background]="setupProgress === 100 ? 'linear-gradient(90deg,#22c55e,#15803d)' : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
+        <div class="progress-fill" [style.width.%]="setupProgress" [style.background]="setupProgress === 100
+            ? 'linear-gradient(90deg,#22c55e,#15803d)'
+            : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
         </div>
       </div>
       <div class="profile-progress-steps">{{ completedSteps }}/{{ totalSteps }} steps completed</div>
@@ -43,11 +44,14 @@
 
   <!-- Tabs -->
   <div class="tab-bar">
-    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">
       Account Overview
     </button>
-    <button class="tab-btn" [class.active]="activeTab === 'workspace'" (click)="activeTab = 'workspace'">
+    <button class="tab-btn" [class.active]="activeTab === 'workspace'" (click)="switchTab('workspace')">
       Workspace Setup
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'api-keys'" (click)="switchTab('api-keys')">
+      API Keys
     </button>
   </div>
 
@@ -181,13 +185,14 @@
     </div>
 
     <div class="info-banner"
-      style="background:rgba(247,147,26,.07);border-color:var(--orange-border);color:rgba(255,255,255,.8);">
+      style="background:rgba(247,147,26,.07);border-color:var(--orange-border);color:rgba(255,255,255,.8);"
+      *ngIf="setup?.notices?.nonCustodial">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <span *ngIf="setup?.notices?.nonCustodial">{{ setup?.notices?.nonCustodial }}</span>
+      <span>{{ setup?.notices?.nonCustodial }}</span>
     </div>
 
   </ng-container>
@@ -196,7 +201,6 @@
   <!-- ── WORKSPACE TAB ── -->
   <ng-container *ngIf="activeTab === 'workspace'">
 
-    <!-- Loading -->
     <div class="skeleton-rows" *ngIf="setupLoading">
       <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
     </div>
@@ -218,52 +222,46 @@
           </div>
         </div>
         <div class="progress-track">
-          <div class="progress-fill" [style.width.%]="setupProgress"
-            [style.background]="setupProgress === 100 ? 'linear-gradient(90deg,#22c55e,#15803d)' : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
+          <div class="progress-fill" [style.width.%]="setupProgress" [style.background]="setupProgress === 100
+              ? 'linear-gradient(90deg,#22c55e,#15803d)'
+              : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
           </div>
         </div>
         <div class="op-flags">
           <span class="flag" [class.ok]="setup?.summary?.hasWorkspace">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Workspace
+            </svg>Workspace
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasBranding">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Branding
+            </svg>Branding
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasWallet">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Wallet
+            </svg>Wallet
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasTradePairs">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Trade Pairs
+            </svg>Trade Pairs
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasSubscription">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Billing
+            </svg>Billing
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasApiKey">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            API Key
+            </svg>API Key
           </span>
           <span class="flag" [class.ok]="setup?.summary?.hasWebhook">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Webhook
+            </svg>Webhook
           </span>
         </div>
       </div>
@@ -305,6 +303,127 @@
     </ng-container>
   </ng-container>
   <!-- ── /WORKSPACE TAB ── -->
+
+  <!-- ── API KEYS TAB ── -->
+  <ng-container *ngIf="activeTab === 'api-keys'">
+
+    <!-- Info banner -->
+    <div class="info-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>
+        API keys authenticate server-to-server requests using the
+        <code>x-doronpay-api-key</code> header. The full key is only shown once at creation — copy it immediately.
+      </span>
+    </div>
+
+    <!-- New key secret reveal banner (shown immediately after creation) -->
+    <div class="new-key-banner" *ngIf="newKeySecret">
+      <div class="new-key-banner-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span style="font-weight:600;color:#22c55e;">API key created — copy it now</span>
+        <span style="font-size:12px;color:var(--gray);margin-left:4px;">This is the only time it will be shown.</span>
+      </div>
+      <div class="new-key-secret-row">
+        <code class="new-key-secret">{{ newKeySecret }}</code>
+        <button class="btn-primary" (click)="copySecret()">
+          {{ newKeySecretCopied ? 'Copied!' : 'Copy' }}
+        </button>
+        <button class="btn-ghost-sm" (click)="dismissSecret()">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- Header row with create button -->
+    <div class="section-card-head" style="margin-bottom:12px;">
+      <h3 class="section-card-title" style="margin:0;">API Keys</h3>
+      <button class="btn-primary" (click)="openCreateForm()" *ngIf="!showCreateForm">
+        + Create key
+      </button>
+    </div>
+
+    <!-- Create key form -->
+    <div class="form-card" *ngIf="showCreateForm">
+      <h4 class="form-card-title">New API Key</h4>
+      <form [formGroup]="createForm" novalidate>
+        <div class="form-group">
+          <label class="form-label">Key name</label>
+          <input class="form-input" type="text" formControlName="name"
+            placeholder="e.g. Production server, Staging integration" />
+          <span class="form-hint">Give this key a recognisable name so you can identify it later.</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-ghost-sm" (click)="cancelCreate()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="createForm.invalid || creatingKey"
+            (click)="createApiKey()">
+            {{ creatingKey ? 'Creating...' : 'Create API key' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading -->
+    <div class="skeleton-rows" *ngIf="apiKeysLoading">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3]" style="height:56px"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state-inline" *ngIf="!apiKeysLoading && apiKeys.length === 0 && !showCreateForm">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+        style="opacity:0.3;margin-bottom:12px;">
+        <path
+          d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+        </path>
+      </svg>
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px;">No API keys yet</p>
+      <p class="muted" style="font-size:13px;">Create an API key to authenticate server-to-server requests.</p>
+    </div>
+
+    <!-- Keys table -->
+    <div class="table-card" *ngIf="!apiKeysLoading && apiKeys.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Key</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Last used</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let key of apiKeys" [class.row-disabled]="!key.isActive">
+            <td style="font-weight:600;font-size:13px;">{{ key.name }}</td>
+            <td class="mono small-text muted">{{ key.keyPreview || '••••••••' }}</td>
+            <td>
+              <span class="badge" [class.badge-success]="key.isActive" [class.badge-warning]="!key.isActive">
+                {{ key.isActive ? 'Active' : 'Disabled' }}
+              </span>
+            </td>
+            <td class="small-text muted">{{ key.createdAt | date:'mediumDate' }}</td>
+            <td class="small-text muted">{{ key.lastUsedAt ? (key.lastUsedAt | date:'mediumDate') : 'Never' }}</td>
+            <td>
+              <div style="display:flex;gap:8px;">
+                <button class="btn-ghost-sm" *ngIf="key.isActive" (click)="disableApiKey(key)">
+                  Disable
+                </button>
+                <button class="btn-ghost-sm btn-danger-ghost" (click)="deleteApiKey(key)">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </ng-container>
+  <!-- ── /API KEYS TAB ── -->
 
 </div>
 
@@ -426,6 +545,82 @@
     color: var(--green);
     font-weight: 600;
     white-space: nowrap;
+  }
+
+  /* ── API Keys tab ── */
+  .new-key-banner {
+    background: rgba(34, 197, 94, 0.07);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .new-key-banner-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .new-key-secret-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .new-key-secret {
+    flex: 1;
+    min-width: 0;
+    word-break: break-all;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: #22c55e;
+    letter-spacing: 0.03em;
+  }
+
+  .section-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--gray2);
+    margin-top: 4px;
+    display: block;
+  }
+
+  .row-disabled td {
+    opacity: 0.5;
+  }
+
+  .btn-danger-ghost {
+    color: #f87171 !important;
+    border-color: rgba(248, 113, 113, 0.3) !important;
+  }
+
+  .btn-danger-ghost:hover {
+    background: rgba(248, 113, 113, 0.08) !important;
+  }
+
+  .empty-state-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-top: 8px;
   }
 
   @media (max-width: 768px) {
