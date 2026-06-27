@@ -33,7 +33,8 @@
         <span class="profile-progress-pct">{{ setupProgress }}%</span>
       </div>
       <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="setupProgress" [style.background]="setupProgress === 100
+        <div class="progress-fill" [style.width.%]="setupProgress"
+          [style.background]="setupProgress === 100
             ? 'linear-gradient(90deg,#22c55e,#15803d)'
             : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
         </div>
@@ -222,7 +223,8 @@
           </div>
         </div>
         <div class="progress-track">
-          <div class="progress-fill" [style.width.%]="setupProgress" [style.background]="setupProgress === 100
+          <div class="progress-fill" [style.width.%]="setupProgress"
+            [style.background]="setupProgress === 100
               ? 'linear-gradient(90deg,#22c55e,#15803d)'
               : 'linear-gradient(90deg,var(--orange),var(--orange-warm))'">
           </div>
@@ -352,13 +354,20 @@
       <form [formGroup]="createForm" novalidate>
         <div class="form-group">
           <label class="form-label">Key name</label>
-          <input class="form-input" type="text" formControlName="name"
-            placeholder="e.g. Production server, Staging integration" />
+          <input
+            class="form-input"
+            type="text"
+            formControlName="name"
+            placeholder="e.g. Production server, Staging integration"
+          />
           <span class="form-hint">Give this key a recognisable name so you can identify it later.</span>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-ghost-sm" (click)="cancelCreate()">Cancel</button>
-          <button type="button" class="btn-primary" [disabled]="createForm.invalid || creatingKey"
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="createForm.invalid || creatingKey"
             (click)="createApiKey()">
             {{ creatingKey ? 'Creating...' : 'Create API key' }}
           </button>
@@ -375,9 +384,7 @@
     <div class="empty-state-inline" *ngIf="!apiKeysLoading && apiKeys.length === 0 && !showCreateForm">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
         style="opacity:0.3;margin-bottom:12px;">
-        <path
-          d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
-        </path>
+        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
       </svg>
       <p style="font-size:14px;font-weight:600;margin-bottom:4px;">No API keys yet</p>
       <p class="muted" style="font-size:13px;">Create an API key to authenticate server-to-server requests.</p>
@@ -399,7 +406,7 @@
         <tbody>
           <tr *ngFor="let key of apiKeys" [class.row-disabled]="!key.isActive">
             <td style="font-weight:600;font-size:13px;">{{ key.name }}</td>
-            <td class="mono small-text muted">{{ key.keyPreview || '••••••••' }}</td>
+            <td class="mono small-text muted">{{ key.maskedKey || '••••••••' }}</td>
             <td>
               <span class="badge" [class.badge-success]="key.isActive" [class.badge-warning]="!key.isActive">
                 {{ key.isActive ? 'Active' : 'Disabled' }}
@@ -409,10 +416,15 @@
             <td class="small-text muted">{{ key.lastUsedAt ? (key.lastUsedAt | date:'mediumDate') : 'Never' }}</td>
             <td>
               <div style="display:flex;gap:8px;">
-                <button class="btn-ghost-sm" *ngIf="key.isActive" (click)="disableApiKey(key)">
+                <button
+                  class="btn-ghost-sm"
+                  *ngIf="key.isActive"
+                  (click)="disableApiKey(key)">
                   Disable
                 </button>
-                <button class="btn-ghost-sm btn-danger-ghost" (click)="deleteApiKey(key)">
+                <button
+                  class="btn-ghost-sm btn-danger-ghost"
+                  (click)="deleteApiKey(key)">
                   Delete
                 </button>
               </div>
@@ -576,7 +588,7 @@
     min-width: 0;
     word-break: break-all;
     font-size: 12px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255,255,255,0.05);
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid var(--border);

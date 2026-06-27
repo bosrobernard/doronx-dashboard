@@ -174,7 +174,6 @@
       </div>
     </div>
 
-    <!-- Plans grid — hidden in PAYG mode (no plan to switch to) -->
     <!-- <ng-container *ngIf="!isPayg">
       <div class="section-card">
         <h3 class="section-card-title">Available Plans</h3>
@@ -271,6 +270,12 @@
           <app-badge *ngIf="bill.paymentStatus && bill.paymentStatus !== 'UNPAID'" [label]="bill.paymentStatus"
             [type]="bill.paymentStatus === 'PAID' ? 'success' : bill.paymentStatus === 'AWAITING_PAYMENT' ? 'info' : 'warning'">
           </app-badge>
+          <!-- Polling indicator -->
+          <span class="poll-indicator" *ngIf="pollingBillId === bill._id" title="Checking for payment…">
+            <span class="poll-dot"></span>
+            <span class="poll-dot"></span>
+            <span class="poll-dot"></span>
+          </span>
           <svg class="bill-chevron" [class.open]="expandedBillId === bill._id" width="16" height="16"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -310,6 +315,12 @@
           <div class="muted small-text" style="margin-top:8px;" *ngIf="bill.cryptoPaymentQuote">
             Rate: 1 {{ bill.paymentAsset }} = ${{ bill.cryptoPaymentQuote.rate | number:'1.4-4' }}
             · Provider: {{ bill.cryptoPaymentQuote.provider }}
+          </div>
+          <div class="poll-status" *ngIf="pollingBillId === bill._id">
+            <span class="poll-dot"></span>
+            <span class="poll-dot"></span>
+            <span class="poll-dot"></span>
+            <span style="font-size:11px;color:var(--gray);">Checking for payment every 8 seconds…</span>
           </div>
         </div>
 

@@ -2,10 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { ApiKeyService, ApiKey } from '../../core/services/api-key.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmModalService } from '../../core/services/confirm-modal.service';
 import { AuthState, WorkspaceSetup } from '../../core/models';
-import { ApiKey, ApiKeyService } from '../../core/services/api-key.service';
 
 @Component({
   selector: 'app-profile',
@@ -118,7 +118,7 @@ export class ProfileComponent implements OnInit {
     });
     if (!confirmed) return;
 
-    this.apiKeyService.disableApiKey(key._id).subscribe({
+    this.apiKeyService.disableApiKey(key.apiKeyId).subscribe({
       next: () => {
         this.toast.success('API key disabled');
         this.loadApiKeys();
@@ -136,7 +136,7 @@ export class ProfileComponent implements OnInit {
     });
     if (!confirmed) return;
 
-    this.apiKeyService.deleteApiKey(key._id).subscribe({
+    this.apiKeyService.deleteApiKey(key.apiKeyId).subscribe({
       next: () => {
         this.toast.success('API key deleted');
         this.loadApiKeys();

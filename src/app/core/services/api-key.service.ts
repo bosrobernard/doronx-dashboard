@@ -7,14 +7,16 @@ import { ApiResponse, PaginatedResponse } from '../models';
 const BASE = environment.apiUrl + environment.smartInvoicingPath;
 
 export interface ApiKey {
-  _id: string;
+  apiKeyId: string;   // API returns apiKeyId, not _id
   name: string;
-  key: string; // only returned on create
-  keyPreview?: string; // e.g. "sk_••••••••abcd"
+  key?: string;       // only returned on create (full key, shown once)
+  keyPrefix?: string; // e.g. "drx_bf0478a0"
+  maskedKey?: string; // e.g. "drx_bf0478a0..."
   scopes: string[];
   isActive: boolean;
   createdAt: string;
-  lastUsedAt?: string;
+  lastUsedAt?: string | null;
+  updatedAt?: string;
 }
 
 export interface CreateApiKeyPayload {

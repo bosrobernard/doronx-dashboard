@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BillingService } from '../core/services/billing.service';
 import { AuthService } from '../core/services/auth.service';
@@ -11,8 +11,18 @@ import {
 } from '../core/models';
 import { ConfirmModalService } from '../core/services/confirm-modal.service';
 
+/** Payment statuses that mean we should keep polling */
+const PENDING_STATUSES = new Set([
+  'AWAITING_PAYMENT',
+  'PAYMENT_DETECTED',
+  'CONFIRMING',
+]);
+
+/** Poll every 8 seconds while a bill is awaiting payment */
+const POLL_INTERVAL_MS = 8000;
+
 @Component({ selector: 'app-billing', templateUrl: './billing.component.html' })
-export class BillingComponent implements OnInit {
+export class BillingComponent implements OnInit, OnDestroy {
   plans: BillingPlan[] = [];
   subscription: BillingSubscription | null = null;
   usage: BillingUsage | null = null;
@@ -37,7 +47,10 @@ export class BillingComponent implements OnInit {
   expandedBillId: string | null = null;
   copiedAddress: string | null = null;
 
-  /** True when the backend reports PAY_AS_YOU_GO billing mode */
+  // ── Payment polling ───────────────────────────────────────────────────────
+  private pollTimer: any = null;
+  pollingBillId: string | null = null;
+
   get isPayg(): boolean {
     return (this.subscription as any)?.billingMode === 'PAY_AS_YOU_GO';
   }
@@ -68,6 +81,11 @@ export class BillingComponent implements OnInit {
     this.loadAll();
   }
 
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────────────
   switchTab(tab: 'overview' | 'bills' | 'wallets'): void {
     this.activeTab = tab;
     if (tab === 'wallets' && !this.walletsLoaded) {
@@ -75,6 +93,7 @@ export class BillingComponent implements OnInit {
     }
   }
 
+  // ── Load all data ─────────────────────────────────────────────────────────
   loadAll(): void {
     this.loading = true;
     Promise.all([
@@ -132,11 +151,19 @@ export class BillingComponent implements OnInit {
       });
   }
 
-  // ── Billing Wallets ───────────────────────────────────────────────────────
   // ── Bill expand / copy ────────────────────────────────────────────────────
   toggleBill(billId: string): void {
-    this.expandedBillId = this.expandedBillId === billId ? null : billId;
-    if (this.expandedBillId !== billId) this.showPayForm = null;
+    if (this.expandedBillId === billId) {
+      this.expandedBillId = null;
+      this.showPayForm = null;
+      this.stopPolling();
+    } else {
+      this.expandedBillId = billId;
+      const bill = this.bills.find(b => b._id === billId);
+      if (bill && PENDING_STATUSES.has(bill.paymentStatus ?? '')) {
+        this.startPolling(billId);
+      }
+    }
   }
 
   copyAddress(address: string): void {
@@ -146,6 +173,73 @@ export class BillingComponent implements OnInit {
     });
   }
 
+  // ── Payment polling ───────────────────────────────────────────────────────
+  private startPolling(billId: string): void {
+    this.stopPolling();
+    this.pollingBillId = billId;
+    this.pollTimer = setInterval(() => this.pollBill(billId), POLL_INTERVAL_MS);
+  }
+
+  private stopPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.pollingBillId = null;
+  }
+
+  private pollBill(billId: string): void {
+    if (this.expandedBillId !== billId) {
+      this.stopPolling();
+      return;
+    }
+
+    this.billingSvc.getBillById(billId).subscribe({
+      next: (res) => {
+        const updated: BillingBill = (res as any)?.data ?? res;
+        const idx = this.bills.findIndex(b => b._id === billId);
+        if (idx !== -1) {
+          this.bills[idx] = { ...this.bills[idx], ...updated };
+        }
+
+        const status = updated.paymentStatus;
+
+        if (status === 'PAYMENT_DETECTED' || status === 'CONFIRMING') {
+          this.toast.success('Payment detected — confirming on-chain…');
+        }
+
+        if (status === 'PAID') {
+          this.toast.success('Bill paid successfully!');
+          this.stopPolling();
+          this.loadAll();
+          return;
+        }
+
+        if (status === 'FAILED' || status === 'EXPIRED') {
+          this.toast.success(`Payment ${status?.toLowerCase()} — please try again.`);
+          this.stopPolling();
+          return;
+        }
+
+        if (!PENDING_STATUSES.has(status ?? '')) {
+          this.stopPolling();
+        }
+      },
+      error: () => {
+        // Transient error — try again next tick
+      },
+    });
+  }
+
+  private startPollingAfterPay(billId: string): void {
+    setTimeout(() => {
+      if (this.expandedBillId === billId) {
+        this.startPolling(billId);
+      }
+    }, 2000);
+  }
+
+  // ── Billing Wallets ───────────────────────────────────────────────────────
   loadWallets(): void {
     this.walletsLoading = true;
     this.billingSvc.listBillingWallets().subscribe({
@@ -163,7 +257,6 @@ export class BillingComponent implements OnInit {
 
   openWalletForm(): void {
     this.showWalletForm = true;
-    // Pre-fill environment from current auth context
     const env = this.auth.auth?.environment ?? 'LIVE';
     this.walletForm.reset({
       environment: env,
@@ -273,15 +366,11 @@ export class BillingComponent implements OnInit {
 
     this.payingBillId = billId;
     this.billingSvc.payBillCrypto(billId, asset, network).subscribe({
-      next: (res) => {
-        this.toast.success(
-          'Payment intent created — send crypto to the address shown',
-        );
+      next: () => {
+        this.toast.success('Payment intent created — send crypto to the address shown');
         this.showPayForm = null;
-        const addr = res.data.payment.receivingAddress;
-        const amount = res.data.payment.expectedCryptoAmount;
-        this.toast.success(`Send ${amount} ${asset} to: ${addr}`);
         this.loadAll();
+        this.startPollingAfterPay(billId);
       },
       error: () => {
         this.payingBillId = null;
